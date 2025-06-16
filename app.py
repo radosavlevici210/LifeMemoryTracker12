@@ -8,14 +8,7 @@ from openai import OpenAI
 from security import rate_limiter, security_monitor, sanitize_input, log_security_event, system_health_check, auto_repair, backup_data, get_security_metrics
 from auto_updater import auto_updater
 from notification_system import notification_system, NotificationType, NotificationPriority
-try:
-    from advanced_analytics import advanced_analytics
-except (ImportError, ModuleNotFoundError) as e:
-    logging.error(f"Advanced analytics not available: {e}")
-    advanced_analytics = None
-except Exception as e:
-    logging.error(f"Advanced analytics initialization failed: {e}")
-    advanced_analytics = None
+from advanced_analytics import advanced_analytics
 from collaboration_tools import collaboration_tools, ShareType, ShareVisibility
 
 # Configure logging
@@ -91,16 +84,16 @@ def chat():
         data = request.get_json()
         if not data or "message" not in data:
             return jsonify({"error": "Invalid request format"}), 400
-
+        
         # Sanitize input
         data = sanitize_input(data)
         user_input = data.get("message", "").strip()
-
+        
         if not user_input:
             return jsonify({"error": "Message cannot be empty"}), 400
-
+        
         today = datetime.date.today().isoformat()
-
+        
         # Load and update memory
         memory = load_memory()
         memory["life_events"].append({
@@ -109,11 +102,11 @@ def chat():
             "timestamp": datetime.datetime.now().isoformat()
         })
         save_memory(memory)
-
+        
         # Get recent life events for context (last 10 entries)
         recent_entries = memory["life_events"][-10:]
         memory_summary = "\n".join([f"{e['date']}: {e['entry']}" for e in recent_entries])
-
+        
         # Create system prompt for life coaching
         system_prompt = f"""You are an advanced AI life coach and advisor with deep wisdom and insight. Today is {today}.
 
@@ -146,14 +139,14 @@ Be direct, wise, and encouraging. Focus on transformation and positive outcomes.
             max_tokens=1000,
             temperature=0.7
         )
-
+        
         ai_reply = response.choices[0].message.content
-
+        
         return jsonify({
             "response": ai_reply,
             "timestamp": datetime.datetime.now().isoformat()
         })
-
+        
     except Exception as e:
         logging.error(f"Error in chat endpoint: {e}")
         return jsonify({
@@ -191,10 +184,10 @@ def mood_check():
         data = request.get_json()
         if not data or "message" not in data:
             return jsonify({"error": "Invalid request format"}), 400
-
+        
         user_input = data["message"].strip()
         today = datetime.date.today().isoformat()
-
+        
         # Analyze mood using AI
         mood_prompt = f"""You are a mood analysis expert. Analyze the following text and determine:
 1. Primary emotion (happy, sad, anxious, angry, neutral, excited, frustrated, content, etc.)
@@ -218,14 +211,14 @@ Respond in JSON format:
             response_format={"type": "json_object"},
             max_tokens=300
         )
-
+        
         mood_data = json.loads(response.choices[0].message.content or "{}")
-
+        
         # Save mood to memory
         memory = load_memory()
         if "mood_history" not in memory:
             memory["mood_history"] = []
-
+        
         mood_entry = {
             "date": today,
             "timestamp": datetime.datetime.now().isoformat(),
@@ -235,12 +228,12 @@ Respond in JSON format:
             "recommendation": mood_data.get("recommendation", ""),
             "original_text": user_input
         }
-
+        
         memory["mood_history"].append(mood_entry)
         save_memory(memory)
-
+        
         return jsonify(mood_data)
-
+        
     except Exception as e:
         logging.error(f"Error in mood check: {e}")
         return jsonify({"error": "Unable to analyze mood"}), 500
@@ -251,18 +244,18 @@ def goal_tracker():
     try:
         data = request.get_json()
         action = data.get("action", "add")  # add, update, complete, delete
-
+        
         memory = load_memory()
         if "goals" not in memory:
             memory["goals"] = []
         if "achievements" not in memory:
             memory["achievements"] = []
-
+        
         if action == "add":
             goal_text = data.get("goal", "").strip()
             if not goal_text:
                 return jsonify({"error": "Goal text is required"}), 400
-
+            
             goal = {
                 "id": len(memory["goals"]) + 1,
                 "text": goal_text,
@@ -273,14 +266,14 @@ def goal_tracker():
                 "category": data.get("category", "general")
             }
             memory["goals"].append(goal)
-
+            
         elif action == "complete":
             goal_id = data.get("goal_id")
             for goal in memory["goals"]:
                 if goal["id"] == goal_id:
                     goal["status"] = "completed"
                     goal["completed_date"] = datetime.date.today().isoformat()
-
+                    
                     # Add to achievements
                     achievement = {
                         "id": len(memory["achievements"]) + 1,
@@ -290,7 +283,7 @@ def goal_tracker():
                     }
                     memory["achievements"].append(achievement)
                     break
-
+        
         elif action == "update_progress":
             goal_id = data.get("goal_id")
             progress = data.get("progress", 0)
@@ -298,10 +291,10 @@ def goal_tracker():
                 if goal["id"] == goal_id:
                     goal["progress"] = min(100, max(0, progress))
                     break
-
+        
         save_memory(memory)
         return jsonify({"message": "Goal updated successfully", "goals": memory["goals"]})
-
+        
     except Exception as e:
         logging.error(f"Error in goal tracker: {e}")
         return jsonify({"error": "Unable to update goals"}), 500
@@ -312,12 +305,12 @@ def action_items():
     try:
         memory = load_memory()
         recent_events = memory.get("life_events", [])[-5:]  # Last 5 conversations
-
+        
         if not recent_events:
             return jsonify({"action_items": []})
-
+        
         context = "\n".join([f"{e['date']}: {e['entry']}" for e in recent_events])
-
+        
         action_prompt = f"""Based on these recent life updates, generate 3-5 specific, actionable items that would help this person improve their situation:
 
 {context}
@@ -340,22 +333,22 @@ Respond with JSON format:
             response_format={"type": "json_object"},
             max_tokens=500
         )
-
+        
         action_data = json.loads(response.choices[0].message.content or "{}")
-
+        
         # Save action items to memory
         if "action_items" not in memory:
             memory["action_items"] = []
-
+        
         for item in action_data.get("action_items", []):
             item["id"] = len(memory["action_items"]) + 1
             item["created_date"] = datetime.date.today().isoformat()
             item["status"] = "pending"
             memory["action_items"].append(item)
-
+        
         save_memory(memory)
         return jsonify(action_data)
-
+        
     except Exception as e:
         logging.error(f"Error generating action items: {e}")
         return jsonify({"error": "Unable to generate action items"}), 500
@@ -365,14 +358,14 @@ def get_insights():
     """Generate personalized insights from user data"""
     try:
         memory = load_memory()
-
+        
         life_events = memory.get("life_events", [])
         mood_history = memory.get("mood_history", [])
         goals = memory.get("goals", [])
-
+        
         if not life_events and not mood_history:
             return jsonify({"insights": []})
-
+        
         # Prepare data for analysis
         analysis_data = {
             "total_conversations": len(life_events),
@@ -381,7 +374,7 @@ def get_insights():
             "recent_moods": [m.get("emotion") for m in mood_history[-10:]],
             "recent_topics": [e.get("entry", "")[:100] for e in life_events[-5:]]
         }
-
+        
         insight_prompt = f"""Analyze this user's life coaching data and provide 3-4 key insights about their patterns, growth, and areas for improvement:
 
 Data: {json.dumps(analysis_data)}
@@ -404,9 +397,9 @@ Respond with JSON format:
             response_format={"type": "json_object"},
             max_tokens=600
         )
-
+        
         return jsonify(json.loads(response.choices[0].message.content or "{}"))
-
+        
     except Exception as e:
         logging.error(f"Error generating insights: {e}")
         return jsonify({"error": "Unable to generate insights"}), 500
@@ -416,7 +409,7 @@ def export_data():
     """Export user's life coaching data"""
     try:
         memory = load_memory()
-
+        
         # Create comprehensive export
         export_data = {
             "export_date": datetime.datetime.now().isoformat(),
@@ -432,9 +425,9 @@ def export_data():
             },
             "data": memory
         }
-
+        
         return jsonify(export_data)
-
+        
     except Exception as e:
         logging.error(f"Error exporting data: {e}")
         return jsonify({"error": "Unable to export data"}), 500
@@ -445,18 +438,18 @@ def habit_tracker():
     try:
         data = request.get_json()
         action = data.get("action", "add")  # add, update, check_in, delete
-
+        
         memory = load_memory()
         if "habits" not in memory:
             memory["habits"] = []
-
+        
         today = datetime.date.today().isoformat()
-
+        
         if action == "add":
             habit_name = data.get("habit", "").strip()
             if not habit_name:
                 return jsonify({"error": "Habit name is required"}), 400
-
+            
             habit = {
                 "id": len(memory["habits"]) + 1,
                 "name": habit_name,
@@ -470,7 +463,7 @@ def habit_tracker():
                 "status": "active"
             }
             memory["habits"].append(habit)
-
+            
         elif action == "check_in":
             habit_id = data.get("habit_id")
             for habit in memory["habits"]:
@@ -479,32 +472,32 @@ def habit_tracker():
                     today_check_ins = [c for c in habit["check_ins"] if c["date"] == today]
                     if today_check_ins:
                         return jsonify({"error": "Already checked in today"}), 400
-
+                    
                     # Add check-in
                     habit["check_ins"].append({
                         "date": today,
                         "timestamp": datetime.datetime.now().isoformat(),
                         "count": data.get("count", 1)
                     })
-
+                    
                     # Update streak
                     habit["total_completions"] += 1
                     yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
                     yesterday_check_ins = [c for c in habit["check_ins"] if c["date"] == yesterday]
-
+                    
                     if yesterday_check_ins or habit["current_streak"] == 0:
                         habit["current_streak"] += 1
                     else:
                         habit["current_streak"] = 1
-
+                    
                     if habit["current_streak"] > habit["longest_streak"]:
                         habit["longest_streak"] = habit["current_streak"]
-
+                    
                     break
-
+        
         save_memory(memory)
         return jsonify({"message": "Habit updated successfully", "habits": memory["habits"]})
-
+        
     except Exception as e:
         logging.error(f"Error in habit tracker: {e}")
         return jsonify({"error": "Unable to update habits"}), 500
@@ -516,14 +509,14 @@ def add_reflection():
         data = request.get_json()
         reflection_text = data.get("reflection", "").strip()
         reflection_type = data.get("type", "daily")  # daily, weekly, monthly
-
+        
         if not reflection_text:
             return jsonify({"error": "Reflection text is required"}), 400
-
+        
         memory = load_memory()
         if "reflections" not in memory:
             memory["reflections"] = []
-
+        
         reflection = {
             "id": len(memory["reflections"]) + 1,
             "text": reflection_text,
@@ -532,12 +525,12 @@ def add_reflection():
             "timestamp": datetime.datetime.now().isoformat(),
             "tags": data.get("tags", [])
         }
-
+        
         memory["reflections"].append(reflection)
         save_memory(memory)
-
+        
         return jsonify({"message": "Reflection added successfully", "reflection": reflection})
-
+        
     except Exception as e:
         logging.error(f"Error adding reflection: {e}")
         return jsonify({"error": "Unable to add reflection"}), 500
@@ -548,16 +541,16 @@ def milestone_tracker():
     try:
         data = request.get_json()
         action = data.get("action", "add")  # add, celebrate, update
-
+        
         memory = load_memory()
         if "milestones" not in memory:
             memory["milestones"] = []
-
+        
         if action == "add":
             milestone_text = data.get("milestone", "").strip()
             if not milestone_text:
                 return jsonify({"error": "Milestone description is required"}), 400
-
+            
             milestone = {
                 "id": len(memory["milestones"]) + 1,
                 "title": milestone_text,
@@ -569,21 +562,21 @@ def milestone_tracker():
                 "reflection": ""
             }
             memory["milestones"].append(milestone)
-
+            
         elif action == "celebrate":
             milestone_id = data.get("milestone_id")
             celebration_note = data.get("celebration_note", "")
-
+            
             for milestone in memory["milestones"]:
                 if milestone["id"] == milestone_id:
                     milestone["celebrated"] = True
                     milestone["celebration_date"] = datetime.date.today().isoformat()
                     milestone["celebration_note"] = celebration_note
                     break
-
+        
         save_memory(memory)
         return jsonify({"message": "Milestone updated successfully", "milestones": memory["milestones"]})
-
+        
     except Exception as e:
         logging.error(f"Error in milestone tracker: {e}")
         return jsonify({"error": "Unable to update milestones"}), 500
@@ -593,24 +586,24 @@ def generate_progress_report():
     """Generate comprehensive progress report"""
     try:
         memory = load_memory()
-
+        
         # Calculate date ranges
         today = datetime.date.today()
         week_ago = today - datetime.timedelta(days=7)
         month_ago = today - datetime.timedelta(days=30)
-
+        
         # Analyze recent activity
         recent_events = [e for e in memory.get("life_events", []) 
                         if datetime.datetime.fromisoformat(e.get("timestamp", e.get("date"))).date() >= week_ago]
-
+        
         recent_moods = [m for m in memory.get("mood_history", []) 
                        if datetime.datetime.fromisoformat(m.get("timestamp")).date() >= week_ago]
-
+        
         active_goals = [g for g in memory.get("goals", []) if g.get("status") == "active"]
         completed_goals_month = [g for g in memory.get("goals", []) 
                                if g.get("status") == "completed" and 
                                datetime.datetime.fromisoformat(g.get("completed_date", today.isoformat())).date() >= month_ago]
-
+        
         # Calculate habit streaks
         habit_summary = []
         for habit in memory.get("habits", []):
@@ -622,7 +615,7 @@ def generate_progress_report():
                     "completion_rate": len(habit.get("check_ins", [])) / max(1, 
                         (today - datetime.datetime.fromisoformat(habit["created_date"]).date()).days)
                 })
-
+        
         # Mood trend analysis
         mood_trends = {}
         for mood in recent_moods:
@@ -630,11 +623,11 @@ def generate_progress_report():
             if emotion not in mood_trends:
                 mood_trends[emotion] = []
             mood_trends[emotion].append(mood.get("intensity", 5))
-
+        
         # Calculate averages
         avg_moods = {emotion: sum(intensities) / len(intensities) 
                     for emotion, intensities in mood_trends.items()}
-
+        
         report = {
             "generated_date": today.isoformat(),
             "period": "Last 7 days",
@@ -655,9 +648,9 @@ def generate_progress_report():
             "upcoming_goals": active_goals[:3],
             "reflections": memory.get("reflections", [])[-3:]
         }
-
+        
         return jsonify(report)
-
+        
     except Exception as e:
         logging.error(f"Error generating progress report: {e}")
         return jsonify({"error": "Unable to generate progress report"}), 500
@@ -670,25 +663,25 @@ def get_ai_coach_advice():
     try:
         data = request.get_json()
         data = sanitize_input(data)
-
+        
         situation = data.get("situation", "").strip()
         advice_type = data.get("type", "general")  # general, crisis, motivation, planning
-
+        
         memory = load_memory()
-
+        
         # Build context from user's history
         recent_events = memory.get("life_events", [])[-10:]
         recent_moods = memory.get("mood_history", [])[-5:]
         active_goals = [g for g in memory.get("goals", []) if g.get("status") == "active"]
         recent_achievements = memory.get("achievements", [])[-3:]
-
+        
         context_summary = {
             "recent_conversations": [e.get("entry", "") for e in recent_events],
             "recent_emotions": [f"{m.get('emotion', 'neutral')} ({m.get('intensity', 5)}/10)" for m in recent_moods],
             "active_goals": [g.get("text", "") for g in active_goals],
             "recent_wins": [a.get("title", "") for a in recent_achievements]
         }
-
+        
         if advice_type == "crisis":
             system_prompt = f"""You are an empathetic crisis support AI coach. The user is going through a difficult time. 
 
@@ -736,7 +729,7 @@ Provide structured planning advice. Focus on:
 5. Connecting to their existing goals and habits
 
 Be systematic, practical, and thorough."""
-
+        
         else:  # general
             system_prompt = f"""You are a wise AI life coach providing personalized guidance.
 
@@ -752,7 +745,7 @@ Provide thoughtful, personalized advice considering their history and patterns. 
 5. Encouraging growth and positive change
 
 Be insightful, supportive, and specific to their situation."""
-
+        
         response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -762,9 +755,9 @@ Be insightful, supportive, and specific to their situation."""
             max_tokens=800,
             temperature=0.7
         )
-
+        
         advice = response.choices[0].message.content
-
+        
         # Save this advice session to memory
         advice_entry = {
             "date": datetime.date.today().isoformat(),
@@ -773,21 +766,21 @@ Be insightful, supportive, and specific to their situation."""
             "advice_type": advice_type,
             "advice": advice
         }
-
+        
         memory["life_events"].append({
             "date": datetime.date.today().isoformat(),
             "timestamp": datetime.datetime.now().isoformat(),
             "entry": f"Sought {advice_type} advice about: {situation[:100]}..."
         })
-
+        
         save_memory(memory)
-
+        
         return jsonify({
             "advice": advice,
             "type": advice_type,
             "timestamp": datetime.datetime.now().isoformat()
         })
-
+        
     except Exception as e:
         logging.error(f"Error getting AI coach advice: {e}")
         return jsonify({"error": "Unable to provide advice right now"}), 500
@@ -802,7 +795,7 @@ def system_status():
         health = system_health_check()
         security_metrics = get_security_metrics()
         updater_status = auto_updater.get_system_status()
-
+        
         return jsonify({
             "status": "operational",
             "timestamp": datetime.datetime.now().isoformat(),
@@ -833,7 +826,7 @@ def trigger_repair():
     try:
         repairs = auto_repair()
         log_security_event("manual_repair_triggered", {"repairs": repairs})
-
+        
         return jsonify({
             "status": "completed",
             "repairs_performed": repairs,
@@ -850,7 +843,7 @@ def create_backup():
     """Create manual backup"""
     try:
         backup_filename = backup_data()
-
+        
         if backup_filename:
             return jsonify({
                 "status": "success",
@@ -859,7 +852,7 @@ def create_backup():
             })
         else:
             return jsonify({"error": "Backup creation failed"}), 500
-
+            
     except Exception as e:
         logging.error(f"Error creating backup: {e}")
         return jsonify({"error": "Backup operation failed"}), 500
@@ -884,7 +877,7 @@ def apply_updates():
     try:
         data = request.get_json() or {}
         update_ids = data.get("update_ids", [])
-
+        
         if not update_ids:
             # Apply all pending updates
             updates_to_apply = auto_updater.pending_updates
@@ -894,13 +887,13 @@ def apply_updates():
                 update for update in auto_updater.pending_updates
                 if update["id"] in update_ids
             ]
-
+        
         if not updates_to_apply:
             return jsonify({"error": "No updates to apply"}), 400
-
+        
         result = auto_updater.apply_updates(updates_to_apply)
         return jsonify(result)
-
+        
     except Exception as e:
         logging.error(f"Error applying updates: {e}")
         return jsonify({"error": "Update application failed"}), 500
@@ -925,17 +918,17 @@ def get_notifications():
     try:
         limit = request.args.get("limit", 20, type=int)
         unread_only = request.args.get("unread", False, type=bool)
-
+        
         notifications = notification_system.get_user_notifications(
             limit=limit, 
             unread_only=unread_only
         )
-
+        
         return jsonify({
             "notifications": notifications,
             "total": len(notifications)
         })
-
+        
     except Exception as e:
         logging.error(f"Error getting notifications: {e}")
         return jsonify({"error": "Unable to retrieve notifications"}), 500
@@ -947,12 +940,12 @@ def mark_notification_read(notification_id):
     """Mark notification as read"""
     try:
         success = notification_system.mark_notification_read(notification_id)
-
+        
         if success:
             return jsonify({"message": "Notification marked as read"})
         else:
             return jsonify({"error": "Notification not found"}), 404
-
+            
     except Exception as e:
         logging.error(f"Error marking notification as read: {e}")
         return jsonify({"error": "Unable to update notification"}), 500
@@ -965,18 +958,18 @@ def notification_preferences():
     try:
         if request.method == "GET":
             return jsonify(notification_system.notification_preferences)
-
+        
         elif request.method == "POST":
             data = request.get_json()
             if not data:
                 return jsonify({"error": "Invalid request format"}), 400
-
+            
             notification_system.update_preferences(data)
             return jsonify({
                 "message": "Preferences updated successfully",
                 "preferences": notification_system.notification_preferences
             })
-
+            
     except Exception as e:
         logging.error(f"Error handling notification preferences: {e}")
         return jsonify({"error": "Unable to handle preferences"}), 500
@@ -987,14 +980,11 @@ def notification_preferences():
 def get_comprehensive_analytics():
     """Get comprehensive analytics report"""
     try:
-        if advanced_analytics is None:
-            return jsonify({"error": "Analytics module not available"}), 503
-            
         memory = load_memory()
         analytics_report = advanced_analytics.generate_comprehensive_report(memory)
-
+        
         return jsonify(analytics_report)
-
+        
     except Exception as e:
         logging.error(f"Error generating comprehensive analytics: {e}")
         return jsonify({"error": "Unable to generate analytics"}), 500
@@ -1005,15 +995,12 @@ def get_comprehensive_analytics():
 def get_predictive_analytics():
     """Get predictive analytics and insights"""
     try:
-        if advanced_analytics is None:
-            return jsonify({"error": "Analytics module not available"}), 503
-            
         memory = load_memory()
-
+        
         # Generate predictions
         from advanced_analytics import AdvancedAnalytics
         analytics = AdvancedAnalytics()
-
+        
         predictions = {
             "goal_completion": analytics._predict_goal_completion(memory.get("goals", [])),
             "mood_forecast": analytics._predict_mood_trend(memory.get("mood_history", [])),
@@ -1021,13 +1008,13 @@ def get_predictive_analytics():
             "engagement_forecast": analytics._predict_engagement(memory.get("life_events", [])),
             "achievement_timeline": analytics._predict_next_achievement(memory)
         }
-
+        
         return jsonify({
             "predictions": predictions,
             "generated_at": datetime.datetime.now().isoformat(),
             "confidence_note": "Predictions are based on historical patterns and may vary"
         })
-
+        
     except Exception as e:
         logging.error(f"Error generating predictions: {e}")
         return jsonify({"error": "Unable to generate predictions"}), 500
@@ -1038,23 +1025,20 @@ def get_predictive_analytics():
 def get_behavioral_analytics():
     """Get behavioral pattern analysis"""
     try:
-        if advanced_analytics is None:
-            return jsonify({"error": "Analytics module not available"}), 503
-            
         memory = load_memory()
-
+        
         from advanced_analytics import AdvancedAnalytics
         analytics = AdvancedAnalytics()
-
+        
         patterns = analytics._analyze_patterns(memory)
         recommendations = analytics._generate_recommendations(memory)
-
+        
         return jsonify({
             "behavioral_patterns": patterns,
             "personalized_recommendations": recommendations,
             "analysis_date": datetime.datetime.now().isoformat()
         })
-
+        
     except Exception as e:
         logging.error(f"Error generating behavioral analytics: {e}")
         return jsonify({"error": "Unable to generate behavioral analysis"}), 500
@@ -1067,20 +1051,20 @@ def trigger_smart_notifications():
     try:
         # Generate smart notifications based on current user state
         memory = load_memory()
-
+        
         # Create contextual notifications
         active_goals = [g for g in memory.get("goals", []) if g.get("status") == "active"]
-
+        
         if len(active_goals) > 0:
             # Check for stale goals
             stale_goals = []
             for goal in active_goals:
                 created_date = datetime.datetime.fromisoformat(goal.get("created_date", datetime.datetime.now().isoformat()))
                 days_since_created = (datetime.datetime.now() - created_date).days
-
+                
                 if days_since_created > 7 and goal.get("progress", 0) < 10:
                     stale_goals.append(goal)
-
+            
             if stale_goals:
                 notification_system.create_notification(
                     NotificationType.GOAL_REMINDER,
@@ -1088,7 +1072,7 @@ def trigger_smart_notifications():
                     f"You have {len(stale_goals)} goals that could use some progress. Let's work on them!",
                     priority=NotificationPriority.MEDIUM
                 )
-
+        
         # Check for habit streaks
         habits = memory.get("habits", [])
         for habit in habits:
@@ -1101,12 +1085,12 @@ def trigger_smart_notifications():
                         f"Congratulations! You've maintained '{habit['name']}' for {streak} days!",
                         priority=NotificationPriority.HIGH
                     )
-
+        
         return jsonify({
             "message": "Smart notifications generated successfully",
             "timestamp": datetime.datetime.now().isoformat()
         })
-
+        
     except Exception as e:
         logging.error(f"Error generating smart notifications: {e}")
         return jsonify({"error": "Unable to generate smart notifications"}), 500
@@ -1120,25 +1104,25 @@ def share_achievement():
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid request format"}), 400
-
+        
         achievement_id = data.get("achievement_id")
         visibility = data.get("visibility", "friends")
-
+        
         memory = load_memory()
         achievements = memory.get("achievements", [])
-
+        
         achievement = next((a for a in achievements if a.get("id") == achievement_id), None)
         if not achievement:
             return jsonify({"error": "Achievement not found"}), 404
-
+        
         visibility_enum = ShareVisibility.FRIENDS
         if visibility == "public":
             visibility_enum = ShareVisibility.PUBLIC
         elif visibility == "private":
             visibility_enum = ShareVisibility.PRIVATE
-
+        
         share_id = collaboration_tools.share_achievement("default", achievement, visibility_enum)
-
+        
         if share_id:
             return jsonify({
                 "message": "Achievement shared successfully",
@@ -1146,7 +1130,7 @@ def share_achievement():
             })
         else:
             return jsonify({"error": "Failed to share achievement"}), 500
-
+        
     except Exception as e:
         logging.error(f"Error sharing achievement: {e}")
         return jsonify({"error": "Unable to share achievement"}), 500
@@ -1160,25 +1144,25 @@ def share_milestone():
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid request format"}), 400
-
+        
         milestone_id = data.get("milestone_id")
         visibility = data.get("visibility", "friends")
-
+        
         memory = load_memory()
         milestones = memory.get("milestones", [])
-
+        
         milestone = next((m for m in milestones if m.get("id") == milestone_id), None)
         if not milestone:
             return jsonify({"error": "Milestone not found"}), 404
-
+        
         visibility_enum = ShareVisibility.FRIENDS
         if visibility == "public":
             visibility_enum = ShareVisibility.PUBLIC
         elif visibility == "private":
             visibility_enum = ShareVisibility.PRIVATE
-
+        
         share_id = collaboration_tools.share_milestone("default", milestone, visibility_enum)
-
+        
         if share_id:
             return jsonify({
                 "message": "Milestone shared successfully",
@@ -1186,7 +1170,7 @@ def share_milestone():
             })
         else:
             return jsonify({"error": "Failed to share milestone"}), 500
-
+        
     except Exception as e:
         logging.error(f"Error sharing milestone: {e}")
         return jsonify({"error": "Unable to share milestone"}), 500
@@ -1199,18 +1183,18 @@ def share_progress_report():
     try:
         data = request.get_json()
         visibility = data.get("visibility", "friends") if data else "friends"
-
+        
         # Generate fresh progress report
         memory = load_memory()
         from app import generate_progress_report
-
+        
         # Create a mock request object for the progress report
         class MockRequest:
             def get_json(self):
                 return {}
-
+        
         mock_request = MockRequest()
-
+        
         # Get progress report data
         with app.test_request_context():
             report_response = generate_progress_report()
@@ -1218,15 +1202,15 @@ def share_progress_report():
                 report = report_response.get_json()
             else:
                 report = report_response
-
+        
         visibility_enum = ShareVisibility.FRIENDS
         if visibility == "public":
             visibility_enum = ShareVisibility.PUBLIC
         elif visibility == "private":
             visibility_enum = ShareVisibility.PRIVATE
-
+        
         share_id = collaboration_tools.share_progress_report("default", report, visibility_enum)
-
+        
         if share_id:
             return jsonify({
                 "message": "Progress report shared successfully",
@@ -1234,7 +1218,7 @@ def share_progress_report():
             })
         else:
             return jsonify({"error": "Failed to share progress report"}), 500
-
+        
     except Exception as e:
         logging.error(f"Error sharing progress report: {e}")
         return jsonify({"error": "Unable to share progress report"}), 500
@@ -1248,7 +1232,7 @@ def share_insight():
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid request format"}), 400
-
+        
         insight = {
             "title": data.get("title", "Personal Insight"),
             "text": data.get("text", ""),
@@ -1257,16 +1241,16 @@ def share_insight():
             "date": datetime.date.today().isoformat(),
             "mood": data.get("mood", "neutral")
         }
-
+        
         visibility = data.get("visibility", "friends")
         visibility_enum = ShareVisibility.FRIENDS
         if visibility == "public":
             visibility_enum = ShareVisibility.PUBLIC
         elif visibility == "private":
             visibility_enum = ShareVisibility.PRIVATE
-
+        
         share_id = collaboration_tools.share_insight("default", insight, visibility_enum)
-
+        
         if share_id:
             return jsonify({
                 "message": "Insight shared successfully",
@@ -1274,7 +1258,7 @@ def share_insight():
             })
         else:
             return jsonify({"error": "Failed to share insight"}), 500
-
+        
     except Exception as e:
         logging.error(f"Error sharing insight: {e}")
         return jsonify({"error": "Unable to share insight"}), 500
@@ -1288,21 +1272,21 @@ def get_shares():
         user_id = request.args.get("user_id", "default")
         share_type = request.args.get("type")
         limit = request.args.get("limit", 20, type=int)
-
+        
         share_type_enum = None
         if share_type:
             try:
                 share_type_enum = ShareType(share_type)
             except ValueError:
                 return jsonify({"error": "Invalid share type"}), 400
-
+        
         shares = collaboration_tools.get_shared_items(user_id, share_type_enum, limit)
-
+        
         return jsonify({
             "shares": shares,
             "total": len(shares)
         })
-
+        
     except Exception as e:
         logging.error(f"Error getting shares: {e}")
         return jsonify({"error": "Unable to retrieve shares"}), 500
@@ -1314,12 +1298,12 @@ def view_share(share_id):
     """View a specific shared item"""
     try:
         share = collaboration_tools.view_share(share_id)
-
+        
         if share:
             return jsonify(share)
         else:
             return jsonify({"error": "Share not found"}), 404
-
+        
     except Exception as e:
         logging.error(f"Error viewing share: {e}")
         return jsonify({"error": "Unable to view share"}), 500
@@ -1331,12 +1315,12 @@ def like_share(share_id):
     """Like a shared item"""
     try:
         success = collaboration_tools.like_share(share_id, "default")
-
+        
         if success:
             return jsonify({"message": "Share liked successfully"})
         else:
             return jsonify({"error": "Unable to like share"}), 400
-
+        
     except Exception as e:
         logging.error(f"Error liking share: {e}")
         return jsonify({"error": "Unable to like share"}), 500
@@ -1350,15 +1334,15 @@ def add_comment(share_id):
         data = request.get_json()
         if not data or "text" not in data:
             return jsonify({"error": "Comment text is required"}), 400
-
+        
         comment_text = sanitize_input(data["text"])
         success = collaboration_tools.add_comment(share_id, "default", comment_text)
-
+        
         if success:
             return jsonify({"message": "Comment added successfully"})
         else:
             return jsonify({"error": "Unable to add comment"}), 400
-
+        
     except Exception as e:
         logging.error(f"Error adding comment: {e}")
         return jsonify({"error": "Unable to add comment"}), 500
@@ -1371,12 +1355,12 @@ def get_feed():
     try:
         limit = request.args.get("limit", 20, type=int)
         feed_items = collaboration_tools.get_feed("default", limit)
-
+        
         return jsonify({
             "feed": feed_items,
             "total": len(feed_items)
         })
-
+        
     except Exception as e:
         logging.error(f"Error getting feed: {e}")
         return jsonify({"error": "Unable to retrieve feed"}), 500
@@ -1389,12 +1373,12 @@ def get_trending():
     try:
         limit = request.args.get("limit", 10, type=int)
         trending_items = collaboration_tools.get_trending_items(limit)
-
+        
         return jsonify({
             "trending": trending_items,
             "total": len(trending_items)
         })
-
+        
     except Exception as e:
         logging.error(f"Error getting trending items: {e}")
         return jsonify({"error": "Unable to retrieve trending items"}), 500
@@ -1408,18 +1392,18 @@ def share_settings():
         if request.method == "GET":
             settings = collaboration_tools.get_share_settings()
             return jsonify(settings)
-
+        
         elif request.method == "POST":
             data = request.get_json()
             if not data:
                 return jsonify({"error": "Invalid request format"}), 400
-
+            
             collaboration_tools.update_share_settings(data)
             return jsonify({
                 "message": "Share settings updated successfully",
                 "settings": collaboration_tools.get_share_settings()
             })
-
+        
     except Exception as e:
         logging.error(f"Error handling share settings: {e}")
         return jsonify({"error": "Unable to handle share settings"}), 500
