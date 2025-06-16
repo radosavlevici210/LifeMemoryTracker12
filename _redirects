@@ -1,0 +1,6 @@
+# Netlify redirects for AI Life Coach SPA
+# Redirect all API calls to serverless function
+/api/* /.netlify/functions/app 200
+
+# Handle all other routes through the main app function
+/* /.netlify/functions/app 200

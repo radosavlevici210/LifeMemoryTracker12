@@ -1,10 +1,12 @@
 [build]
   publish = "static"
-  command = "echo 'Static files ready for deployment'"
+  command = "python -m pip install --upgrade pip && pip install -r netlify/functions/requirements.txt"
+  functions = "netlify/functions"
 
 [build.environment]
   PYTHON_VERSION = "3.11"
   NODE_VERSION = "18"
+  PIP_CACHE_DIR = ".pip_cache"
 
 [[headers]]
   for = "/*"
