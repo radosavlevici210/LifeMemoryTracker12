@@ -1,0 +1,165 @@
+/* Custom styles for Life Coach Chat App */
+
+body {
+    background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+    min-height: 100vh;
+}
+
+.chat-container {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.chat-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: var(--bs-dark);
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background: var(--bs-primary);
+    border-radius: 3px;
+}
+
+.message {
+    margin-bottom: 1rem;
+    animation: messageSlide 0.3s ease-out;
+}
+
+@keyframes messageSlide {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-message {
+    text-align: right;
+}
+
+.user-message .message-content {
+    background: var(--bs-primary);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem 1rem 0.25rem 1rem;
+    display: inline-block;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.ai-message .message-content {
+    background: var(--bs-secondary);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem 1rem 1rem 0.25rem;
+    display: inline-block;
+    max-width: 85%;
+    word-wrap: break-word;
+    line-height: 1.5;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: var(--bs-text-muted);
+    margin-top: 0.25rem;
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #6610f2);
+    border: none;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0b5ed7, #5a0fc8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+}
+
+.life-event {
+    background: var(--bs-dark);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.life-event-date {
+    font-size: 0.85rem;
+    color: var(--bs-primary);
+    font-weight: 500;
+}
+
+.life-event-content {
+    margin-top: 0.25rem;
+    color: var(--bs-body-color);
+    line-height: 1.4;
+}
+
+.input-group textarea:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 0.5rem;
+    }
+    
+    .user-message .message-content,
+    .ai-message .message-content {
+        max-width: 90%;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+}
+
+/* Loading animation */
+.loading-dots {
+    display: inline-block;
+    animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+    0%, 20% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 1;
+    }
+    80%, 100% {
+        opacity: 0.3;
+    }
+}
+
+/* Smooth transitions */
+.btn, .card, .message-content {
+    transition: all 0.2s ease;
+}
+
+/* Custom alert styles */
+.alert-info {
+    background: rgba(13, 110, 253, 0.1);
+    border-color: rgba(13, 110, 253, 0.2);
+    color: var(--bs-info);
+}
