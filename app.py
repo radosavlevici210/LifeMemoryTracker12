@@ -39,9 +39,20 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 
-# OpenAI configuration
+# OpenAI configuration with connection pooling
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+openai_client = None
+
+def get_openai_client():
+    """Lazy load OpenAI client for better performance"""
+    global openai_client
+    if openai_client is None and OPENAI_API_KEY:
+        openai_client = OpenAI(
+            api_key=OPENAI_API_KEY,
+            max_retries=2,
+            timeout=30.0
+        )
+    return openai_client
 
 MEMORY_FILE = "life_memory.json"
 
@@ -173,7 +184,8 @@ def chat():
         if not user_input:
             return jsonify({"error": "Message cannot be empty"}), 400
         
-        if not openai_client:
+        client = get_openai_client()
+        if not client:
             return jsonify({"error": "OpenAI API not configured. Please set OPENAI_API_KEY."}), 500
         
         today = datetime.date.today().isoformat()
@@ -199,16 +211,17 @@ Recent mood: {recent_mood}
 
 Provide supportive, actionable guidance. Be empathetic and helpful."""
         
-        # Get AI response
+        # Get AI response with optimizations
         try:
-            response = openai_client.chat.completions.create(
-                model="gpt-4o",
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",  # Faster model
                 messages=[
                     {"role": "system", "content": context},
                     {"role": "user", "content": user_input}
                 ],
-                max_tokens=500,
-                temperature=0.7
+                max_tokens=400,  # Optimized token limit
+                temperature=0.7,
+                stream=False
             )
             
             ai_response = response.choices[0].message.content

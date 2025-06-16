@@ -4,10 +4,10 @@
   functions = "netlify/functions"
 
 [build.environment]
-  PYTHON_VERSION = "3.11"
+  PYTHON_VERSION = "3.9"
   NODE_VERSION = "20"
   PIP_CACHE_DIR = ".pip_cache"
-  PYTHONPATH = "/opt/buildhome/python3.11/lib/python3.11/site-packages"
+  PYTHONPATH = "/opt/build/repo/netlify/functions"
 
 [functions]
   directory = "netlify/functions"
