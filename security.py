@@ -55,31 +55,13 @@ def log_security_event(event_type, details):
         logging.warning(f"Security event: {event_type} - {details}")
 
 def sanitize_input(data):
-    """Sanitize user input"""
+    """Basic input cleaning"""
     if isinstance(data, str):
-        # Remove potentially dangerous characters
-        dangerous_chars = ['<', '>', '"', "'", '&', 'script', 'javascript', 'onclick']
-        for char in dangerous_chars:
-            data = data.replace(char, '')
         return data.strip()
     elif isinstance(data, dict):
         return {key: sanitize_input(value) for key, value in data.items()}
     elif isinstance(data, list):
         return [sanitize_input(item) for item in data]
-    return data
-
-def validate_session():
-    """Validate user session"""
-    session_token = request.headers.get('X-Session-Token')
-    if not session_token:
-        return False
-    
-    # Simple session validation (in production, use proper JWT or session store)
-    return len(session_token) == 43  # URL-safe base64 token length
-
-def encrypt_sensitive_data(data):
-    """Encrypt sensitive data (placeholder for production encryption)"""
-    # In production, use proper encryption like Fernet or AES
     return data
 
 def system_health_check():

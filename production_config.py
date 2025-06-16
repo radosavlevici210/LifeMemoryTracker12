@@ -20,14 +20,6 @@ class ProductionConfig:
     SESSION_COOKIE_SAMESITE = 'Lax'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     
-    # CORS Configuration
-    CORS_ORIGINS = [
-        'https://*.replit.app',
-        'https://*.replit.dev',
-        'https://*.netlify.app',
-        'https://*.netlify.com'
-    ]
-    
     
     
     # Logging Configuration
