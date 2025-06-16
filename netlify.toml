@@ -1,3 +1,4 @@
+
 [build]
   publish = "static"
   command = "python -m pip install --upgrade pip && pip install -r netlify/functions/requirements.txt"
@@ -7,14 +8,10 @@
   PYTHON_VERSION = "3.9"
   NODE_VERSION = "20"
   PIP_CACHE_DIR = ".pip_cache"
-  PYTHONPATH = "/opt/build/repo/netlify/functions"
+  PYTHONPATH = "/opt/build/repo"
 
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
-
-[functions."app"]
-  runtime = "python3.11"
 
 [[redirects]]
   from = "/chat"
@@ -57,6 +54,6 @@
   status = 200
 
 [dev]
-  command = "python main.py"
+  command = "python app.py"
   port = 5000
   publish = "static"
