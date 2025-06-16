@@ -1,3 +1,6 @@
+AUTHOR = "Ervin Remus Radosavlevici"
+COPYRIGHT = "Protected under digital surveillance © 2025"
+
 import os
 import json
 import datetime
