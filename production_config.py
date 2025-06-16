@@ -28,33 +28,13 @@ class ProductionConfig:
         'https://*.netlify.com'
     ]
     
-    # Rate Limiting
-    RATELIMIT_STORAGE_URL = "memory://"
-    RATELIMIT_DEFAULT = "100 per hour"
-    RATELIMIT_HEADERS_ENABLED = True
+    
     
     # Logging Configuration
     LOG_LEVEL = logging.INFO
     LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s %(message)s'
     
-    # Security Headers
-    SECURITY_HEADERS = {
-        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block',
-        'Content-Security-Policy': (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.replit.com; "
-            "font-src 'self' https://cdnjs.cloudflare.com; "
-            "img-src 'self' data: https:; "
-            "connect-src 'self' https://api.openai.com; "
-            "frame-ancestors 'none'"
-        ),
-        'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Permissions-Policy': 'camera=(), microphone=(), geolocation=self'
-    }
+    
     
     # Performance Configuration
     SEND_FILE_MAX_AGE_DEFAULT = timedelta(days=365)  # Static file caching
@@ -103,12 +83,7 @@ class ProductionConfig:
         for directory in [cls.DATA_DIRECTORY, cls.BACKUP_DIRECTORY, cls.LOG_DIRECTORY]:
             os.makedirs(directory, exist_ok=True)
         
-        # Configure security headers
-        @app.after_request
-        def add_security_headers(response):
-            for header, value in cls.SECURITY_HEADERS.items():
-                response.headers[header] = value
-            return response
+        
         
         # Configure error handling
         @app.errorhandler(404)
