@@ -1,0 +1,34 @@
+Pasted-The-Netlify-deploy-errored-with-the-following-guidance-provided-Diagnosis-The-build-is-fa-1750100725346_1750100725349.txt
+The Netlify deploy errored, with the following guidance provided:
+
+**Diagnosis:**
+The build is failing due to an error related to Python version 3.11.
+
+**Solution:**
+1. **Python Version Mismatch:** The error occurs because the required Python version `3.11` is not available.
+2. **Solution:** 
+   - Verify that Python version `3.11` is supported in the project configuration.
+   - If `3.11` is required, check if it's available in the project's build settings or documentation.
+   - If `3.11` is not explicitly necessary, consider downgrading to a supported Python version. 
+   - Check and update the Python version compatibility in the project's requirements or configuration files.
+
+For Node.js or JavaScript version mismatches on Netlify, you can refer to the [documentation for changing Node versions](https://docs.netlify.com/configure-builds/manage-dependencies/#node-js-and-javascript).
+
+The relevant error logs are:
+
+Line 0: Failed during stage 'Install dependencies': dependency_installation script returned non-zero exit code: 1
+Line 1: build-image version: fc7cf188ea9a5b61d2537a36056ff145bdcc8a22 (noble)
+Line 2: buildbot version: fc7cf188ea9a5b61d2537a36056ff145bdcc8a22
+Line 3: Fetching cached dependencies
+Line 4: Failed to fetch cache, continuing with build
+Line 5: Starting to prepare the repo for build
+Line 6: No cached dependencies found. Cloning fresh repo
+Line 7: git clone --filter=blob:none https://github.com/radosavlevici210/LifeMemoryTracker12
+Line 8: Preparing Git Reference refs/heads/main
+Line 9: Starting to install dependencies
+Line 10: [2mmise[0m [34mpython[0m@python-3.11 install
+Line 11: [33mmise[0m [33mWARN[0m  no precompiled python found for python-3.11, force mise to use a precompiled version with `mise set
+Line 12: [2mmise[0m [34mpython[0m@python-3.11 python-build
+Line 13: python-build: definition not found: python-3.11
+Line 14: [31mmise[0m [31mERROR[0m ~/.cache/mise/python/pyenv/plugins/python-build/bin/python-build failed
+Line 15: python-build: definition not found: python-3.11
