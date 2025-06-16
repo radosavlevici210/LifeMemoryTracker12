@@ -5,24 +5,56 @@
 
 [build.environment]
   PYTHON_VERSION = "3.11"
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   PIP_CACHE_DIR = ".pip_cache"
+  PYTHONPATH = "/opt/buildhome/python3.11/lib/python3.11/site-packages"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
+[functions."app"]
+  runtime = "python3.11"
+
+[[redirects]]
+  from = "/chat"
+  to = "/.netlify/functions/app"
+  status = 200
+
+[[redirects]]
+  from = "/memory"
+  to = "/.netlify/functions/app"
+  status = 200
+
+[[redirects]]
+  from = "/clear_memory"
+  to = "/.netlify/functions/app"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/app"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/.netlify/functions/app"
+  status = 200
+
+[[redirects]]
+  from = "/logout"
+  to = "/.netlify/functions/app"
+  status = 200
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/app"
   status = 200
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
 
 [dev]
   command = "python main.py"
