@@ -7,6 +7,9 @@ from flask_cors import CORS
 from openai import OpenAI
 from security import rate_limiter, security_monitor, sanitize_input, log_security_event, system_health_check, auto_repair, backup_data, get_security_metrics
 from auto_updater import auto_updater
+from notification_system import notification_system, NotificationType, NotificationPriority
+from advanced_analytics import advanced_analytics
+from collaboration_tools import collaboration_tools, ShareType, ShareVisibility
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -906,6 +909,504 @@ def optimize_system():
     except Exception as e:
         logging.error(f"Error optimizing system: {e}")
         return jsonify({"error": "Optimization failed"}), 500
+
+@app.route("/notifications", methods=["GET"])
+@rate_limiter(max_requests=50, window=60)
+@security_monitor
+def get_notifications():
+    """Get user notifications"""
+    try:
+        limit = request.args.get("limit", 20, type=int)
+        unread_only = request.args.get("unread", False, type=bool)
+        
+        notifications = notification_system.get_user_notifications(
+            limit=limit, 
+            unread_only=unread_only
+        )
+        
+        return jsonify({
+            "notifications": notifications,
+            "total": len(notifications)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting notifications: {e}")
+        return jsonify({"error": "Unable to retrieve notifications"}), 500
+
+@app.route("/notifications/<notification_id>/read", methods=["POST"])
+@rate_limiter(max_requests=100, window=60)
+@security_monitor
+def mark_notification_read(notification_id):
+    """Mark notification as read"""
+    try:
+        success = notification_system.mark_notification_read(notification_id)
+        
+        if success:
+            return jsonify({"message": "Notification marked as read"})
+        else:
+            return jsonify({"error": "Notification not found"}), 404
+            
+    except Exception as e:
+        logging.error(f"Error marking notification as read: {e}")
+        return jsonify({"error": "Unable to update notification"}), 500
+
+@app.route("/notifications/preferences", methods=["GET", "POST"])
+@rate_limiter(max_requests=20, window=60)
+@security_monitor
+def notification_preferences():
+    """Get or update notification preferences"""
+    try:
+        if request.method == "GET":
+            return jsonify(notification_system.notification_preferences)
+        
+        elif request.method == "POST":
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "Invalid request format"}), 400
+            
+            notification_system.update_preferences(data)
+            return jsonify({
+                "message": "Preferences updated successfully",
+                "preferences": notification_system.notification_preferences
+            })
+            
+    except Exception as e:
+        logging.error(f"Error handling notification preferences: {e}")
+        return jsonify({"error": "Unable to handle preferences"}), 500
+
+@app.route("/analytics/comprehensive", methods=["GET"])
+@rate_limiter(max_requests=10, window=300)
+@security_monitor
+def get_comprehensive_analytics():
+    """Get comprehensive analytics report"""
+    try:
+        memory = load_memory()
+        analytics_report = advanced_analytics.generate_comprehensive_report(memory)
+        
+        return jsonify(analytics_report)
+        
+    except Exception as e:
+        logging.error(f"Error generating comprehensive analytics: {e}")
+        return jsonify({"error": "Unable to generate analytics"}), 500
+
+@app.route("/analytics/predictions", methods=["GET"])
+@rate_limiter(max_requests=20, window=300)
+@security_monitor
+def get_predictive_analytics():
+    """Get predictive analytics and insights"""
+    try:
+        memory = load_memory()
+        
+        # Generate predictions
+        from advanced_analytics import AdvancedAnalytics
+        analytics = AdvancedAnalytics()
+        
+        predictions = {
+            "goal_completion": analytics._predict_goal_completion(memory.get("goals", [])),
+            "mood_forecast": analytics._predict_mood_trend(memory.get("mood_history", [])),
+            "habit_sustainability": analytics._predict_habit_sustainability(memory.get("habits", [])),
+            "engagement_forecast": analytics._predict_engagement(memory.get("life_events", [])),
+            "achievement_timeline": analytics._predict_next_achievement(memory)
+        }
+        
+        return jsonify({
+            "predictions": predictions,
+            "generated_at": datetime.datetime.now().isoformat(),
+            "confidence_note": "Predictions are based on historical patterns and may vary"
+        })
+        
+    except Exception as e:
+        logging.error(f"Error generating predictions: {e}")
+        return jsonify({"error": "Unable to generate predictions"}), 500
+
+@app.route("/analytics/behavioral", methods=["GET"])
+@rate_limiter(max_requests=15, window=300)
+@security_monitor
+def get_behavioral_analytics():
+    """Get behavioral pattern analysis"""
+    try:
+        memory = load_memory()
+        
+        from advanced_analytics import AdvancedAnalytics
+        analytics = AdvancedAnalytics()
+        
+        patterns = analytics._analyze_patterns(memory)
+        recommendations = analytics._generate_recommendations(memory)
+        
+        return jsonify({
+            "behavioral_patterns": patterns,
+            "personalized_recommendations": recommendations,
+            "analysis_date": datetime.datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logging.error(f"Error generating behavioral analytics: {e}")
+        return jsonify({"error": "Unable to generate behavioral analysis"}), 500
+
+@app.route("/smart_notifications/trigger", methods=["POST"])
+@rate_limiter(max_requests=5, window=300)
+@security_monitor
+def trigger_smart_notifications():
+    """Manually trigger smart notification generation"""
+    try:
+        # Generate smart notifications based on current user state
+        memory = load_memory()
+        
+        # Create contextual notifications
+        active_goals = [g for g in memory.get("goals", []) if g.get("status") == "active"]
+        
+        if len(active_goals) > 0:
+            # Check for stale goals
+            stale_goals = []
+            for goal in active_goals:
+                created_date = datetime.datetime.fromisoformat(goal.get("created_date", datetime.datetime.now().isoformat()))
+                days_since_created = (datetime.datetime.now() - created_date).days
+                
+                if days_since_created > 7 and goal.get("progress", 0) < 10:
+                    stale_goals.append(goal)
+            
+            if stale_goals:
+                notification_system.create_notification(
+                    NotificationType.GOAL_REMINDER,
+                    f"Goals Need Attention",
+                    f"You have {len(stale_goals)} goals that could use some progress. Let's work on them!",
+                    priority=NotificationPriority.MEDIUM
+                )
+        
+        # Check for habit streaks
+        habits = memory.get("habits", [])
+        for habit in habits:
+            if habit.get("status") == "active":
+                streak = habit.get("current_streak", 0)
+                if streak > 0 and streak % 5 == 0:  # Every 5 days
+                    notification_system.create_notification(
+                        NotificationType.HABIT_STREAK,
+                        "Habit Streak Achievement!",
+                        f"Congratulations! You've maintained '{habit['name']}' for {streak} days!",
+                        priority=NotificationPriority.HIGH
+                    )
+        
+        return jsonify({
+            "message": "Smart notifications generated successfully",
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logging.error(f"Error generating smart notifications: {e}")
+        return jsonify({"error": "Unable to generate smart notifications"}), 500
+
+@app.route("/share/achievement", methods=["POST"])
+@rate_limiter(max_requests=20, window=300)
+@security_monitor
+def share_achievement():
+    """Share an achievement"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request format"}), 400
+        
+        achievement_id = data.get("achievement_id")
+        visibility = data.get("visibility", "friends")
+        
+        memory = load_memory()
+        achievements = memory.get("achievements", [])
+        
+        achievement = next((a for a in achievements if a.get("id") == achievement_id), None)
+        if not achievement:
+            return jsonify({"error": "Achievement not found"}), 404
+        
+        visibility_enum = ShareVisibility.FRIENDS
+        if visibility == "public":
+            visibility_enum = ShareVisibility.PUBLIC
+        elif visibility == "private":
+            visibility_enum = ShareVisibility.PRIVATE
+        
+        share_id = collaboration_tools.share_achievement("default", achievement, visibility_enum)
+        
+        if share_id:
+            return jsonify({
+                "message": "Achievement shared successfully",
+                "share_id": share_id
+            })
+        else:
+            return jsonify({"error": "Failed to share achievement"}), 500
+        
+    except Exception as e:
+        logging.error(f"Error sharing achievement: {e}")
+        return jsonify({"error": "Unable to share achievement"}), 500
+
+@app.route("/share/milestone", methods=["POST"])
+@rate_limiter(max_requests=20, window=300)
+@security_monitor
+def share_milestone():
+    """Share a milestone"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request format"}), 400
+        
+        milestone_id = data.get("milestone_id")
+        visibility = data.get("visibility", "friends")
+        
+        memory = load_memory()
+        milestones = memory.get("milestones", [])
+        
+        milestone = next((m for m in milestones if m.get("id") == milestone_id), None)
+        if not milestone:
+            return jsonify({"error": "Milestone not found"}), 404
+        
+        visibility_enum = ShareVisibility.FRIENDS
+        if visibility == "public":
+            visibility_enum = ShareVisibility.PUBLIC
+        elif visibility == "private":
+            visibility_enum = ShareVisibility.PRIVATE
+        
+        share_id = collaboration_tools.share_milestone("default", milestone, visibility_enum)
+        
+        if share_id:
+            return jsonify({
+                "message": "Milestone shared successfully",
+                "share_id": share_id
+            })
+        else:
+            return jsonify({"error": "Failed to share milestone"}), 500
+        
+    except Exception as e:
+        logging.error(f"Error sharing milestone: {e}")
+        return jsonify({"error": "Unable to share milestone"}), 500
+
+@app.route("/share/progress", methods=["POST"])
+@rate_limiter(max_requests=10, window=300)
+@security_monitor
+def share_progress_report():
+    """Share a progress report"""
+    try:
+        data = request.get_json()
+        visibility = data.get("visibility", "friends") if data else "friends"
+        
+        # Generate fresh progress report
+        memory = load_memory()
+        from app import generate_progress_report
+        
+        # Create a mock request object for the progress report
+        class MockRequest:
+            def get_json(self):
+                return {}
+        
+        mock_request = MockRequest()
+        
+        # Get progress report data
+        with app.test_request_context():
+            report_response = generate_progress_report()
+            if hasattr(report_response, 'get_json'):
+                report = report_response.get_json()
+            else:
+                report = report_response
+        
+        visibility_enum = ShareVisibility.FRIENDS
+        if visibility == "public":
+            visibility_enum = ShareVisibility.PUBLIC
+        elif visibility == "private":
+            visibility_enum = ShareVisibility.PRIVATE
+        
+        share_id = collaboration_tools.share_progress_report("default", report, visibility_enum)
+        
+        if share_id:
+            return jsonify({
+                "message": "Progress report shared successfully",
+                "share_id": share_id
+            })
+        else:
+            return jsonify({"error": "Failed to share progress report"}), 500
+        
+    except Exception as e:
+        logging.error(f"Error sharing progress report: {e}")
+        return jsonify({"error": "Unable to share progress report"}), 500
+
+@app.route("/share/insight", methods=["POST"])
+@rate_limiter(max_requests=30, window=300)
+@security_monitor
+def share_insight():
+    """Share a personal insight"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request format"}), 400
+        
+        insight = {
+            "title": data.get("title", "Personal Insight"),
+            "text": data.get("text", ""),
+            "category": data.get("category", "general"),
+            "tags": data.get("tags", []),
+            "date": datetime.date.today().isoformat(),
+            "mood": data.get("mood", "neutral")
+        }
+        
+        visibility = data.get("visibility", "friends")
+        visibility_enum = ShareVisibility.FRIENDS
+        if visibility == "public":
+            visibility_enum = ShareVisibility.PUBLIC
+        elif visibility == "private":
+            visibility_enum = ShareVisibility.PRIVATE
+        
+        share_id = collaboration_tools.share_insight("default", insight, visibility_enum)
+        
+        if share_id:
+            return jsonify({
+                "message": "Insight shared successfully",
+                "share_id": share_id
+            })
+        else:
+            return jsonify({"error": "Failed to share insight"}), 500
+        
+    except Exception as e:
+        logging.error(f"Error sharing insight: {e}")
+        return jsonify({"error": "Unable to share insight"}), 500
+
+@app.route("/shares", methods=["GET"])
+@rate_limiter(max_requests=50, window=60)
+@security_monitor
+def get_shares():
+    """Get shared items"""
+    try:
+        user_id = request.args.get("user_id", "default")
+        share_type = request.args.get("type")
+        limit = request.args.get("limit", 20, type=int)
+        
+        share_type_enum = None
+        if share_type:
+            try:
+                share_type_enum = ShareType(share_type)
+            except ValueError:
+                return jsonify({"error": "Invalid share type"}), 400
+        
+        shares = collaboration_tools.get_shared_items(user_id, share_type_enum, limit)
+        
+        return jsonify({
+            "shares": shares,
+            "total": len(shares)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting shares: {e}")
+        return jsonify({"error": "Unable to retrieve shares"}), 500
+
+@app.route("/shares/<share_id>", methods=["GET"])
+@rate_limiter(max_requests=100, window=60)
+@security_monitor
+def view_share(share_id):
+    """View a specific shared item"""
+    try:
+        share = collaboration_tools.view_share(share_id)
+        
+        if share:
+            return jsonify(share)
+        else:
+            return jsonify({"error": "Share not found"}), 404
+        
+    except Exception as e:
+        logging.error(f"Error viewing share: {e}")
+        return jsonify({"error": "Unable to view share"}), 500
+
+@app.route("/shares/<share_id>/like", methods=["POST"])
+@rate_limiter(max_requests=100, window=60)
+@security_monitor
+def like_share(share_id):
+    """Like a shared item"""
+    try:
+        success = collaboration_tools.like_share(share_id, "default")
+        
+        if success:
+            return jsonify({"message": "Share liked successfully"})
+        else:
+            return jsonify({"error": "Unable to like share"}), 400
+        
+    except Exception as e:
+        logging.error(f"Error liking share: {e}")
+        return jsonify({"error": "Unable to like share"}), 500
+
+@app.route("/shares/<share_id>/comment", methods=["POST"])
+@rate_limiter(max_requests=50, window=300)
+@security_monitor
+def add_comment(share_id):
+    """Add a comment to a shared item"""
+    try:
+        data = request.get_json()
+        if not data or "text" not in data:
+            return jsonify({"error": "Comment text is required"}), 400
+        
+        comment_text = sanitize_input(data["text"])
+        success = collaboration_tools.add_comment(share_id, "default", comment_text)
+        
+        if success:
+            return jsonify({"message": "Comment added successfully"})
+        else:
+            return jsonify({"error": "Unable to add comment"}), 400
+        
+    except Exception as e:
+        logging.error(f"Error adding comment: {e}")
+        return jsonify({"error": "Unable to add comment"}), 500
+
+@app.route("/feed", methods=["GET"])
+@rate_limiter(max_requests=30, window=60)
+@security_monitor
+def get_feed():
+    """Get personalized feed"""
+    try:
+        limit = request.args.get("limit", 20, type=int)
+        feed_items = collaboration_tools.get_feed("default", limit)
+        
+        return jsonify({
+            "feed": feed_items,
+            "total": len(feed_items)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting feed: {e}")
+        return jsonify({"error": "Unable to retrieve feed"}), 500
+
+@app.route("/trending", methods=["GET"])
+@rate_limiter(max_requests=20, window=300)
+@security_monitor
+def get_trending():
+    """Get trending shared items"""
+    try:
+        limit = request.args.get("limit", 10, type=int)
+        trending_items = collaboration_tools.get_trending_items(limit)
+        
+        return jsonify({
+            "trending": trending_items,
+            "total": len(trending_items)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting trending items: {e}")
+        return jsonify({"error": "Unable to retrieve trending items"}), 500
+
+@app.route("/share/settings", methods=["GET", "POST"])
+@rate_limiter(max_requests=20, window=300)
+@security_monitor
+def share_settings():
+    """Get or update sharing settings"""
+    try:
+        if request.method == "GET":
+            settings = collaboration_tools.get_share_settings()
+            return jsonify(settings)
+        
+        elif request.method == "POST":
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "Invalid request format"}), 400
+            
+            collaboration_tools.update_share_settings(data)
+            return jsonify({
+                "message": "Share settings updated successfully",
+                "settings": collaboration_tools.get_share_settings()
+            })
+        
+    except Exception as e:
+        logging.error(f"Error handling share settings: {e}")
+        return jsonify({"error": "Unable to handle share settings"}), 500
 
 # Register admin blueprint
 from admin_dashboard import admin_bp
