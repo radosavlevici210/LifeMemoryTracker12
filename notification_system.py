@@ -7,8 +7,13 @@ import json
 import datetime
 import logging
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+try:
+    from email.mime.text import MimeText
+    from email.mime.multipart import MimeMultipart
+except ImportError:
+    # Fallback for systems where email modules might not be available
+    MimeText = None
+    MimeMultipart = None
 from typing import Dict, List, Optional
 import threading
 import time
@@ -126,6 +131,10 @@ class NotificationSystem:
     def _send_email(self, notification: Notification):
         """Send email notification"""
         try:
+            if MimeText is None or MimeMultipart is None:
+                logging.warning("Email modules not available, skipping email notification")
+                return
+                
             # In production, configure SMTP settings
             smtp_server = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
             smtp_port = int(os.environ.get("SMTP_PORT", "587"))
