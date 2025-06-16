@@ -7,12 +7,12 @@ import json
 import datetime
 import logging
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Dict, List, Optional
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 class NotificationType(Enum):
@@ -42,8 +42,8 @@ class Notification:
     created_at: datetime.datetime
     scheduled_for: Optional[datetime.datetime] = None
     sent: bool = False
-    delivery_methods: List[str] = None
-    metadata: Dict = None
+    delivery_methods: Optional[List[str]] = field(default_factory=list)
+    metadata: Optional[Dict] = field(default_factory=dict)
 
 class NotificationSystem:
     def __init__(self):
@@ -66,8 +66,8 @@ class NotificationSystem:
                           title: str, message: str, user_id: str = "default",
                           priority: NotificationPriority = NotificationPriority.MEDIUM,
                           scheduled_for: Optional[datetime.datetime] = None,
-                          delivery_methods: List[str] = None,
-                          metadata: Dict = None) -> str:
+                          delivery_methods: Optional[List[str]] = None,
+                          metadata: Optional[Dict] = None) -> str:
         """Create a new notification"""
         
         notification_id = f"notif_{int(time.time())}"
@@ -107,7 +107,8 @@ class NotificationSystem:
                     notification.scheduled_for = self._get_next_active_time()
                     return
             
-            for method in notification.delivery_methods:
+            delivery_methods = notification.delivery_methods or ["in_app"]
+            for method in delivery_methods:
                 if method == "email" and self.notification_preferences["email_enabled"]:
                     self._send_email(notification)
                 elif method == "push" and self.notification_preferences["push_enabled"]:
@@ -136,7 +137,7 @@ class NotificationSystem:
                 logging.warning("SMTP credentials not configured")
                 return
             
-            msg = MimeMultipart()
+            msg = MIMEMultipart()
             msg["From"] = smtp_username
             msg["To"] = os.environ.get("USER_EMAIL", "user@example.com")
             msg["Subject"] = f"AI Life Coach: {notification.title}"
@@ -150,7 +151,7 @@ class NotificationSystem:
             This is an automated message from your AI Life Coach.
             """
             
-            msg.attach(MimeText(body, "plain"))
+            msg.attach(MIMEText(body, "plain"))
             
             # Send email (commented out for demo)
             # server = smtplib.SMTP(smtp_server, smtp_port)
