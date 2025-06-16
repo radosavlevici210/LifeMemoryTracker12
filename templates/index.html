@@ -22,10 +22,24 @@
                     AI Life Coach
                 </span>
                 <div class="navbar-text">
-                    <button class="btn btn-outline-light btn-sm" onclick="showMemoryModal()">
-                        <i class="fas fa-history me-1"></i>
-                        Memory
-                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-light btn-sm" onclick="showMoodTracker()">
+                            <i class="fas fa-heart me-1"></i>
+                            Mood
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showGoalsModal()">
+                            <i class="fas fa-target me-1"></i>
+                            Goals
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showInsightsModal()">
+                            <i class="fas fa-chart-line me-1"></i>
+                            Insights
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showMemoryModal()">
+                            <i class="fas fa-history me-1"></i>
+                            Memory
+                        </button>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -62,6 +76,24 @@
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Welcome!</strong> Tell me about your day, share your challenges, or ask for advice. 
                                     I'll remember our conversations to provide better guidance over time.
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="mb-3">
+                                <div class="btn-group w-100" role="group">
+                                    <button class="btn btn-outline-info btn-sm" onclick="quickMoodCheck()">
+                                        <i class="fas fa-smile me-1"></i>
+                                        Quick Mood Check
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm" onclick="generateActionItems()">
+                                        <i class="fas fa-tasks me-1"></i>
+                                        Get Action Items
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="addQuickGoal()">
+                                        <i class="fas fa-plus me-1"></i>
+                                        Add Goal
+                                    </button>
                                 </div>
                             </div>
 
@@ -135,9 +167,137 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-info" onclick="exportData()">
+                        <i class="fas fa-download me-1"></i>
+                        Export Data
+                    </button>
                     <button type="button" class="btn btn-danger" onclick="clearMemory()">
                         <i class="fas fa-trash me-1"></i>
                         Clear Memory
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Goals Modal -->
+    <div class="modal fade" id="goalsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-target me-2"></i>
+                        Goals & Achievements
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add Goal Form -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Add New Goal</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" id="newGoalText" placeholder="What do you want to achieve?">
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" id="goalCategory">
+                                        <option value="general">General</option>
+                                        <option value="health">Health</option>
+                                        <option value="career">Career</option>
+                                        <option value="relationships">Relationships</option>
+                                        <option value="financial">Financial</option>
+                                        <option value="personal">Personal</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-primary" onclick="addGoal()">
+                                        <i class="fas fa-plus me-1"></i>
+                                        Add Goal
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="goalsContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading your goals...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights Modal -->
+    <div class="modal fade" id="insightsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Personal Insights & Analytics
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="insightsContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing your patterns and generating insights...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="refreshInsights()">
+                        <i class="fas fa-sync me-1"></i>
+                        Refresh Insights
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mood Tracker Modal -->
+    <div class="modal fade" id="moodModal" tabindex="-1">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-heart me-2"></i>
+                        Mood Tracker
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="moodInput" class="form-label">How are you feeling today?</label>
+                        <textarea class="form-control" id="moodInput" rows="4" placeholder="Describe your current mood, feelings, or what's affecting you today..."></textarea>
+                    </div>
+                    <div id="moodResult" class="d-none">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">Mood Analysis</h6>
+                            <div id="moodAnalysis"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="analyzeMood()">
+                        <i class="fas fa-brain me-1"></i>
+                        Analyze Mood
                     </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>

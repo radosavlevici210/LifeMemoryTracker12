@@ -272,3 +272,430 @@ async function clearMemory() {
         showAlert('Failed to clear memory. Please try again.', 'danger');
     }
 }
+
+// Show mood tracker modal
+function showMoodTracker() {
+    const modal = new bootstrap.Modal(document.getElementById('moodModal'));
+    modal.show();
+}
+
+// Analyze mood
+async function analyzeMood() {
+    const moodInput = document.getElementById('moodInput');
+    const moodResult = document.getElementById('moodResult');
+    const moodAnalysis = document.getElementById('moodAnalysis');
+    
+    const text = moodInput.value.trim();
+    if (!text) {
+        showAlert('Please describe how you\'re feeling first.', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/mood_check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: text })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            moodAnalysis.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Emotion:</strong> ${data.emotion}<br>
+                        <strong>Intensity:</strong> ${data.intensity}/10
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Key Factors:</strong><br>
+                        <ul class="mb-0">
+                            ${data.factors.map(factor => `<li>${factor}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <strong>Recommendation:</strong><br>
+                    ${data.recommendation}
+                </div>
+            `;
+            moodResult.classList.remove('d-none');
+        } else {
+            throw new Error(data.error || 'Failed to analyze mood');
+        }
+    } catch (error) {
+        console.error('Error analyzing mood:', error);
+        showAlert('Failed to analyze mood. Please try again.', 'danger');
+    }
+}
+
+// Quick mood check
+async function quickMoodCheck() {
+    const messageInput = document.getElementById('messageInput');
+    const currentText = messageInput.value.trim();
+    
+    if (!currentText) {
+        showAlert('Please type something about how you\'re feeling first.', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/mood_check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: currentText })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            addMessage(`Mood Analysis: ${data.emotion} (${data.intensity}/10) - ${data.recommendation}`, 'ai');
+        } else {
+            throw new Error(data.error || 'Failed to analyze mood');
+        }
+    } catch (error) {
+        console.error('Error in quick mood check:', error);
+        addMessage('Unable to analyze mood right now. Please try again.', 'ai', true);
+    }
+}
+
+// Show goals modal
+async function showGoalsModal() {
+    const modal = new bootstrap.Modal(document.getElementById('goalsModal'));
+    const goalsContent = document.getElementById('goalsContent');
+    
+    modal.show();
+    
+    try {
+        const response = await fetch('/memory');
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayGoals(data.goals || []);
+        } else {
+            throw new Error(data.error || 'Failed to load goals');
+        }
+    } catch (error) {
+        console.error('Error loading goals:', error);
+        goalsContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to load goals. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Display goals
+function displayGoals(goals) {
+    const goalsContent = document.getElementById('goalsContent');
+    
+    if (!goals || goals.length === 0) {
+        goalsContent.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No goals set yet. Add your first goal above!
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    goals.forEach(goal => {
+        const statusClass = goal.status === 'completed' ? 'success' : 'primary';
+        const statusIcon = goal.status === 'completed' ? 'check-circle' : 'clock';
+        
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title">${escapeHtml(goal.text)}</h6>
+                            <div class="text-muted small">
+                                <i class="fas fa-tag me-1"></i>${goal.category}
+                                <span class="ms-3"><i class="fas fa-calendar me-1"></i>${goal.created_date}</span>
+                            </div>
+                            ${goal.progress ? `
+                                <div class="progress mt-2" style="height: 6px;">
+                                    <div class="progress-bar" style="width: ${goal.progress}%"></div>
+                                </div>
+                                <small class="text-muted">${goal.progress}% complete</small>
+                            ` : ''}
+                        </div>
+                        <span class="badge bg-${statusClass}">
+                            <i class="fas fa-${statusIcon} me-1"></i>${goal.status}
+                        </span>
+                    </div>
+                    ${goal.status === 'active' ? `
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-success" onclick="completeGoal(${goal.id})">
+                                <i class="fas fa-check me-1"></i>Mark Complete
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    goalsContent.innerHTML = html;
+}
+
+// Add goal
+async function addGoal() {
+    const goalText = document.getElementById('newGoalText').value.trim();
+    const category = document.getElementById('goalCategory').value;
+    
+    if (!goalText) {
+        showAlert('Please enter a goal description.', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/goal_tracker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'add',
+                goal: goalText,
+                category: category
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('Goal added successfully!', 'success');
+            document.getElementById('newGoalText').value = '';
+            displayGoals(data.goals);
+        } else {
+            throw new Error(data.error || 'Failed to add goal');
+        }
+    } catch (error) {
+        console.error('Error adding goal:', error);
+        showAlert('Failed to add goal. Please try again.', 'danger');
+    }
+}
+
+// Complete goal
+async function completeGoal(goalId) {
+    try {
+        const response = await fetch('/goal_tracker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'complete',
+                goal_id: goalId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('Congratulations on completing your goal!', 'success');
+            displayGoals(data.goals);
+        } else {
+            throw new Error(data.error || 'Failed to complete goal');
+        }
+    } catch (error) {
+        console.error('Error completing goal:', error);
+        showAlert('Failed to complete goal. Please try again.', 'danger');
+    }
+}
+
+// Add quick goal
+function addQuickGoal() {
+    const goalText = prompt('What goal would you like to add?');
+    if (goalText && goalText.trim()) {
+        addGoalDirectly(goalText.trim());
+    }
+}
+
+// Add goal directly
+async function addGoalDirectly(goalText) {
+    try {
+        const response = await fetch('/goal_tracker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'add',
+                goal: goalText,
+                category: 'general'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('Goal added successfully!', 'success');
+            addMessage(`Goal added: "${goalText}"`, 'ai');
+        } else {
+            throw new Error(data.error || 'Failed to add goal');
+        }
+    } catch (error) {
+        console.error('Error adding goal:', error);
+        showAlert('Failed to add goal. Please try again.', 'danger');
+    }
+}
+
+// Generate action items
+async function generateActionItems() {
+    try {
+        const response = await fetch('/action_items', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.action_items) {
+            let itemsText = 'Based on your recent conversations, here are some action items:\n\n';
+            data.action_items.forEach((item, index) => {
+                itemsText += `${index + 1}. **${item.title}** (${item.priority} priority)\n`;
+                itemsText += `   Category: ${item.category}\n`;
+                itemsText += `   Why: ${item.description}\n\n`;
+            });
+            
+            addMessage(itemsText, 'ai');
+        } else {
+            addMessage('Not enough conversation history to generate action items. Chat more first!', 'ai');
+        }
+    } catch (error) {
+        console.error('Error generating action items:', error);
+        addMessage('Unable to generate action items right now. Please try again.', 'ai', true);
+    }
+}
+
+// Show insights modal
+async function showInsightsModal() {
+    const modal = new bootstrap.Modal(document.getElementById('insightsModal'));
+    const insightsContent = document.getElementById('insightsContent');
+    
+    modal.show();
+    
+    try {
+        const response = await fetch('/insights');
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayInsights(data.insights || []);
+        } else {
+            throw new Error(data.error || 'Failed to load insights');
+        }
+    } catch (error) {
+        console.error('Error loading insights:', error);
+        insightsContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to load insights. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Display insights
+function displayInsights(insights) {
+    const insightsContent = document.getElementById('insightsContent');
+    
+    if (!insights || insights.length === 0) {
+        insightsContent.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Not enough data to generate insights yet. Keep chatting to build your profile!
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    insights.forEach(insight => {
+        const typeClass = {
+            'positive': 'success',
+            'growth': 'info',
+            'warning': 'warning',
+            'opportunity': 'primary'
+        }[insight.type] || 'secondary';
+        
+        const typeIcon = {
+            'positive': 'thumbs-up',
+            'growth': 'arrow-up',
+            'warning': 'exclamation-triangle',
+            'opportunity': 'lightbulb'
+        }[insight.type] || 'info-circle';
+        
+        html += `
+            <div class="card mb-3">
+                <div class="card-header bg-${typeClass} text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-${typeIcon} me-2"></i>
+                        ${escapeHtml(insight.title)}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">${escapeHtml(insight.description)}</p>
+                    <div class="alert alert-light">
+                        <strong>Action Tip:</strong> ${escapeHtml(insight.actionable_tip)}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    insightsContent.innerHTML = html;
+}
+
+// Refresh insights
+function refreshInsights() {
+    const insightsContent = document.getElementById('insightsContent');
+    insightsContent.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Analyzing your patterns and generating fresh insights...</p>
+        </div>
+    `;
+    
+    setTimeout(() => {
+        showInsightsModal();
+    }, 1000);
+}
+
+// Export data
+async function exportData() {
+    try {
+        const response = await fetch('/export_data');
+        const data = await response.json();
+        
+        if (response.ok) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `life-coach-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showAlert('Data exported successfully!', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to export data');
+        }
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        showAlert('Failed to export data. Please try again.', 'danger');
+    }
+}

@@ -1,5 +1,11 @@
 {
-  "life_events": [],
+  "life_events": [
+    {
+      "date": "2025-06-16",
+      "entry": "hey what can you do",
+      "timestamp": "2025-06-16T02:53:29.784521"
+    }
+  ],
   "goals": [],
   "warnings": []
 }
