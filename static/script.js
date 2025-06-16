@@ -699,3 +699,434 @@ async function exportData() {
         showAlert('Failed to export data. Please try again.', 'danger');
     }
 }
+
+// Show habits modal
+async function showHabitsModal() {
+    const modal = new bootstrap.Modal(document.getElementById('habitsModal'));
+    const habitsContent = document.getElementById('habitsContent');
+    
+    modal.show();
+    
+    try {
+        const response = await fetch('/memory');
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayHabits(data.habits || []);
+        } else {
+            throw new Error(data.error || 'Failed to load habits');
+        }
+    } catch (error) {
+        console.error('Error loading habits:', error);
+        habitsContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to load habits. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Display habits
+function displayHabits(habits) {
+    const habitsContent = document.getElementById('habitsContent');
+    
+    if (!habits || habits.length === 0) {
+        habitsContent.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No habits tracked yet. Add your first habit above!
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    habits.forEach(habit => {
+        const statusClass = habit.status === 'active' ? 'success' : 'secondary';
+        const streakClass = habit.current_streak > 7 ? 'success' : habit.current_streak > 3 ? 'warning' : 'info';
+        
+        // Check if checked in today
+        const today = new Date().toISOString().split('T')[0];
+        const checkedInToday = habit.check_ins && habit.check_ins.some(c => c.date === today);
+        
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title">${escapeHtml(habit.name)}</h6>
+                            <div class="text-muted small">
+                                <i class="fas fa-calendar me-1"></i>${habit.frequency}
+                                <span class="ms-3"><i class="fas fa-plus me-1"></i>Since ${habit.created_date}</span>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-${streakClass} me-2">
+                                    <i class="fas fa-fire me-1"></i>
+                                    ${habit.current_streak || 0} day streak
+                                </span>
+                                <span class="badge bg-info me-2">
+                                    <i class="fas fa-trophy me-1"></i>
+                                    Best: ${habit.longest_streak || 0}
+                                </span>
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-check me-1"></i>
+                                    ${habit.total_completions || 0} total
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-${statusClass} mb-2">
+                                ${habit.status}
+                            </span>
+                            ${habit.status === 'active' && !checkedInToday ? `
+                                <div>
+                                    <button class="btn btn-sm btn-success" onclick="checkInHabit(${habit.id})">
+                                        <i class="fas fa-check me-1"></i>Check In
+                                    </button>
+                                </div>
+                            ` : checkedInToday ? `
+                                <div>
+                                    <span class="text-success">
+                                        <i class="fas fa-check-circle me-1"></i>Done today!
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    habitsContent.innerHTML = html;
+}
+
+// Add habit
+async function addHabit() {
+    const habitName = document.getElementById('newHabitName').value.trim();
+    const frequency = document.getElementById('habitFrequency').value;
+    
+    if (!habitName) {
+        showAlert('Please enter a habit name.', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/habit_tracker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'add',
+                habit: habitName,
+                frequency: frequency
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('Habit added successfully!', 'success');
+            document.getElementById('newHabitName').value = '';
+            displayHabits(data.habits);
+        } else {
+            throw new Error(data.error || 'Failed to add habit');
+        }
+    } catch (error) {
+        console.error('Error adding habit:', error);
+        showAlert('Failed to add habit. Please try again.', 'danger');
+    }
+}
+
+// Check in habit
+async function checkInHabit(habitId) {
+    try {
+        const response = await fetch('/habit_tracker', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'check_in',
+                habit_id: habitId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showAlert('Great job! Habit checked in for today!', 'success');
+            displayHabits(data.habits);
+        } else {
+            throw new Error(data.error || 'Failed to check in habit');
+        }
+    } catch (error) {
+        console.error('Error checking in habit:', error);
+        showAlert('Failed to check in habit. Please try again.', 'danger');
+    }
+}
+
+// Show progress report
+async function showProgressReport() {
+    const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+    const progressContent = document.getElementById('progressContent');
+    
+    modal.show();
+    
+    try {
+        const response = await fetch('/progress_report');
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayProgressReport(data);
+        } else {
+            throw new Error(data.error || 'Failed to load progress report');
+        }
+    } catch (error) {
+        console.error('Error loading progress report:', error);
+        progressContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Failed to load progress report. Please try again.
+            </div>
+        `;
+    }
+}
+
+// Display progress report
+function displayProgressReport(report) {
+    const progressContent = document.getElementById('progressContent');
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Activity Summary
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="h4 text-primary">${report.summary.conversations}</div>
+                                <small class="text-muted">Conversations</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h4 text-success">${report.summary.goals_completed_this_month}</div>
+                                <small class="text-muted">Goals Completed</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h4 text-warning">${report.summary.active_habits}</div>
+                                <small class="text-muted">Active Habits</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-heart me-2"></i>
+                            Mood Analysis
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Dominant Emotion:</strong> 
+                            <span class="badge bg-info">${report.mood_analysis.dominant_emotion}</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Mood Stability:</strong> 
+                            <span class="text-muted">${report.mood_analysis.mood_stability} different emotions</span>
+                        </div>
+    `;
+    
+    if (Object.keys(report.mood_analysis.average_moods).length > 0) {
+        html += '<div class="mb-2"><strong>Average Mood Scores:</strong><ul class="list-unstyled mb-0">';
+        for (const [emotion, score] of Object.entries(report.mood_analysis.average_moods)) {
+            html += `<li>${emotion}: ${score.toFixed(1)}/10</li>`;
+        }
+        html += '</ul></div>';
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Habits performance
+    if (report.habit_performance && report.habit_performance.length > 0) {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Habit Performance
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+        `;
+        
+        report.habit_performance.forEach(habit => {
+            const completionPercentage = Math.round(habit.completion_rate * 100);
+            html += `
+                <div class="col-md-4 mb-3">
+                    <div class="border rounded p-3">
+                        <h6>${escapeHtml(habit.name)}</h6>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: ${completionPercentage}%"></div>
+                        </div>
+                        <small class="text-muted">
+                            ${completionPercentage}% completion • ${habit.current_streak} day streak
+                        </small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Recent achievements and upcoming goals
+    html += `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-trophy me-2"></i>
+                            Recent Achievements
+                        </h6>
+                    </div>
+                    <div class="card-body">
+    `;
+    
+    if (report.recent_achievements && report.recent_achievements.length > 0) {
+        report.recent_achievements.forEach(achievement => {
+            html += `
+                <div class="border-bottom pb-2 mb-2">
+                    <strong>${escapeHtml(achievement.title)}</strong>
+                    <br><small class="text-muted">${achievement.date}</small>
+                </div>
+            `;
+        });
+    } else {
+        html += '<p class="text-muted">No recent achievements. Keep working towards your goals!</p>';
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-target me-2"></i>
+                            Upcoming Goals
+                        </h6>
+                    </div>
+                    <div class="card-body">
+    `;
+    
+    if (report.upcoming_goals && report.upcoming_goals.length > 0) {
+        report.upcoming_goals.forEach(goal => {
+            html += `
+                <div class="border-bottom pb-2 mb-2">
+                    <strong>${escapeHtml(goal.text)}</strong>
+                    <br><small class="text-muted">${goal.category} • ${goal.progress || 0}% complete</small>
+                </div>
+            `;
+        });
+    } else {
+        html += '<p class="text-muted">No active goals. Consider setting some new objectives!</p>';
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    progressContent.innerHTML = html;
+}
+
+// Refresh progress report
+function refreshProgressReport() {
+    const progressContent = document.getElementById('progressContent');
+    progressContent.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Regenerating your progress report...</p>
+        </div>
+    `;
+    
+    setTimeout(() => {
+        showProgressReport();
+    }, 1000);
+}
+
+// Show specialized advice modal
+function getSpecializedAdvice() {
+    const modal = new bootstrap.Modal(document.getElementById('adviceModal'));
+    modal.show();
+}
+
+// Get AI advice
+async function getAdvice() {
+    const situationInput = document.getElementById('situationInput');
+    const adviceType = document.getElementById('adviceType');
+    const adviceResult = document.getElementById('adviceResult');
+    const adviceContent = document.getElementById('adviceContent');
+    
+    const situation = situationInput.value.trim();
+    const type = adviceType.value;
+    
+    if (!situation) {
+        showAlert('Please describe your situation first.', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/ai_coach_advice', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                situation: situation,
+                type: type
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            adviceContent.innerHTML = formatAIResponse(data.advice);
+            adviceResult.classList.remove('d-none');
+            
+            // Also add to main chat
+            addMessage(`Specialized ${type} advice: ${data.advice}`, 'ai');
+        } else {
+            throw new Error(data.error || 'Failed to get advice');
+        }
+    } catch (error) {
+        console.error('Error getting advice:', error);
+        showAlert('Failed to get advice. Please try again.', 'danger');
+    }
+}

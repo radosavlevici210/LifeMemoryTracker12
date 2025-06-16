@@ -35,6 +35,14 @@
                             <i class="fas fa-chart-line me-1"></i>
                             Insights
                         </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showHabitsModal()">
+                            <i class="fas fa-calendar-check me-1"></i>
+                            Habits
+                        </button>
+                        <button class="btn btn-outline-light btn-sm" onclick="showProgressReport()">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Progress
+                        </button>
                         <button class="btn btn-outline-light btn-sm" onclick="showMemoryModal()">
                             <i class="fas fa-history me-1"></i>
                             Memory
@@ -93,6 +101,10 @@
                                     <button class="btn btn-outline-warning btn-sm" onclick="addQuickGoal()">
                                         <i class="fas fa-plus me-1"></i>
                                         Add Goal
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="getSpecializedAdvice()">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        Get Advice
                                     </button>
                                 </div>
                             </div>
@@ -298,6 +310,136 @@
                     <button type="button" class="btn btn-primary" onclick="analyzeMood()">
                         <i class="fas fa-brain me-1"></i>
                         Analyze Mood
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Habits Modal -->
+    <div class="modal fade" id="habitsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Habit Tracker
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add Habit Form -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Add New Habit</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <input type="text" class="form-control" id="newHabitName" placeholder="What habit do you want to build?">
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select" id="habitFrequency">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-primary" onclick="addHabit()">
+                                        <i class="fas fa-plus me-1"></i>
+                                        Add Habit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="habitsContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading your habits...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Report Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Progress Report
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="progressContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Generating your progress report...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="refreshProgressReport()">
+                        <i class="fas fa-sync me-1"></i>
+                        Refresh Report
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Advice Modal -->
+    <div class="modal fade" id="adviceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Specialized AI Coaching
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="situationInput" class="form-label">Describe your situation:</label>
+                        <textarea class="form-control" id="situationInput" rows="4" placeholder="Tell me what's happening and what kind of guidance you need..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="adviceType" class="form-label">Type of advice needed:</label>
+                        <select class="form-select" id="adviceType">
+                            <option value="general">General Guidance</option>
+                            <option value="crisis">Crisis Support</option>
+                            <option value="motivation">Motivation & Encouragement</option>
+                            <option value="planning">Strategic Planning</option>
+                        </select>
+                    </div>
+                    <div id="adviceResult" class="d-none">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">AI Coach Advice</h6>
+                            <div id="adviceContent"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="getAdvice()">
+                        <i class="fas fa-brain me-1"></i>
+                        Get Advice
                     </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>

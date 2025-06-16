@@ -25,11 +25,35 @@ def load_memory():
     if os.path.exists(MEMORY_FILE):
         try:
             with open(MEMORY_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Ensure all required fields exist
+                default_structure = {
+                    "life_events": [],
+                    "goals": [],
+                    "warnings": [],
+                    "mood_history": [],
+                    "achievements": [],
+                    "action_items": [],
+                    "habits": [],
+                    "reflections": [],
+                    "milestones": []
+                }
+                for key, default_value in default_structure.items():
+                    if key not in data:
+                        data[key] = default_value
+                return data
         except (json.JSONDecodeError, IOError) as e:
             logging.error(f"Error loading memory file: {e}")
-            return {"life_events": [], "goals": [], "warnings": []}
-    return {"life_events": [], "goals": [], "warnings": []}
+            return {
+                "life_events": [], "goals": [], "warnings": [],
+                "mood_history": [], "achievements": [], "action_items": [],
+                "habits": [], "reflections": [], "milestones": []
+            }
+    return {
+        "life_events": [], "goals": [], "warnings": [],
+        "mood_history": [], "achievements": [], "action_items": [],
+        "habits": [], "reflections": [], "milestones": []
+    }
 
 def save_memory(data):
     """Save user's life memory to JSON file"""
@@ -131,7 +155,10 @@ def get_memory():
 def clear_memory():
     """Clear user's life memory (with confirmation)"""
     try:
-        empty_memory = {"life_events": [], "goals": [], "warnings": [], "mood_history": [], "achievements": [], "action_items": []}
+        empty_memory = {
+            "life_events": [], "goals": [], "warnings": [], "mood_history": [], 
+            "achievements": [], "action_items": [], "habits": [], "reflections": [], "milestones": []
+        }
         save_memory(empty_memory)
         return jsonify({"message": "Memory cleared successfully"})
     except Exception as e:
@@ -379,7 +406,10 @@ def export_data():
                 "total_goals": len(memory.get("goals", [])),
                 "completed_goals": len([g for g in memory.get("goals", []) if g.get("status") == "completed"]),
                 "mood_entries": len(memory.get("mood_history", [])),
-                "achievements": len(memory.get("achievements", []))
+                "achievements": len(memory.get("achievements", [])),
+                "habits_tracked": len(memory.get("habits", [])),
+                "reflections": len(memory.get("reflections", [])),
+                "milestones": len(memory.get("milestones", []))
             },
             "data": memory
         }
@@ -389,6 +419,355 @@ def export_data():
     except Exception as e:
         logging.error(f"Error exporting data: {e}")
         return jsonify({"error": "Unable to export data"}), 500
+
+@app.route("/habit_tracker", methods=["POST"])
+def habit_tracker():
+    """Track daily habits and build streaks"""
+    try:
+        data = request.get_json()
+        action = data.get("action", "add")  # add, update, check_in, delete
+        
+        memory = load_memory()
+        if "habits" not in memory:
+            memory["habits"] = []
+        
+        today = datetime.date.today().isoformat()
+        
+        if action == "add":
+            habit_name = data.get("habit", "").strip()
+            if not habit_name:
+                return jsonify({"error": "Habit name is required"}), 400
+            
+            habit = {
+                "id": len(memory["habits"]) + 1,
+                "name": habit_name,
+                "created_date": today,
+                "frequency": data.get("frequency", "daily"),  # daily, weekly, custom
+                "target_count": data.get("target_count", 1),
+                "current_streak": 0,
+                "longest_streak": 0,
+                "total_completions": 0,
+                "check_ins": [],
+                "status": "active"
+            }
+            memory["habits"].append(habit)
+            
+        elif action == "check_in":
+            habit_id = data.get("habit_id")
+            for habit in memory["habits"]:
+                if habit["id"] == habit_id:
+                    # Check if already checked in today
+                    today_check_ins = [c for c in habit["check_ins"] if c["date"] == today]
+                    if today_check_ins:
+                        return jsonify({"error": "Already checked in today"}), 400
+                    
+                    # Add check-in
+                    habit["check_ins"].append({
+                        "date": today,
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "count": data.get("count", 1)
+                    })
+                    
+                    # Update streak
+                    habit["total_completions"] += 1
+                    yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+                    yesterday_check_ins = [c for c in habit["check_ins"] if c["date"] == yesterday]
+                    
+                    if yesterday_check_ins or habit["current_streak"] == 0:
+                        habit["current_streak"] += 1
+                    else:
+                        habit["current_streak"] = 1
+                    
+                    if habit["current_streak"] > habit["longest_streak"]:
+                        habit["longest_streak"] = habit["current_streak"]
+                    
+                    break
+        
+        save_memory(memory)
+        return jsonify({"message": "Habit updated successfully", "habits": memory["habits"]})
+        
+    except Exception as e:
+        logging.error(f"Error in habit tracker: {e}")
+        return jsonify({"error": "Unable to update habits"}), 500
+
+@app.route("/reflection", methods=["POST"])
+def add_reflection():
+    """Add daily/weekly reflections"""
+    try:
+        data = request.get_json()
+        reflection_text = data.get("reflection", "").strip()
+        reflection_type = data.get("type", "daily")  # daily, weekly, monthly
+        
+        if not reflection_text:
+            return jsonify({"error": "Reflection text is required"}), 400
+        
+        memory = load_memory()
+        if "reflections" not in memory:
+            memory["reflections"] = []
+        
+        reflection = {
+            "id": len(memory["reflections"]) + 1,
+            "text": reflection_text,
+            "type": reflection_type,
+            "date": datetime.date.today().isoformat(),
+            "timestamp": datetime.datetime.now().isoformat(),
+            "tags": data.get("tags", [])
+        }
+        
+        memory["reflections"].append(reflection)
+        save_memory(memory)
+        
+        return jsonify({"message": "Reflection added successfully", "reflection": reflection})
+        
+    except Exception as e:
+        logging.error(f"Error adding reflection: {e}")
+        return jsonify({"error": "Unable to add reflection"}), 500
+
+@app.route("/milestones", methods=["POST"])
+def milestone_tracker():
+    """Track important life milestones and celebrations"""
+    try:
+        data = request.get_json()
+        action = data.get("action", "add")  # add, celebrate, update
+        
+        memory = load_memory()
+        if "milestones" not in memory:
+            memory["milestones"] = []
+        
+        if action == "add":
+            milestone_text = data.get("milestone", "").strip()
+            if not milestone_text:
+                return jsonify({"error": "Milestone description is required"}), 400
+            
+            milestone = {
+                "id": len(memory["milestones"]) + 1,
+                "title": milestone_text,
+                "description": data.get("description", ""),
+                "category": data.get("category", "personal"),  # personal, career, health, relationships
+                "date": datetime.date.today().isoformat(),
+                "importance": data.get("importance", "medium"),  # low, medium, high
+                "celebrated": False,
+                "reflection": ""
+            }
+            memory["milestones"].append(milestone)
+            
+        elif action == "celebrate":
+            milestone_id = data.get("milestone_id")
+            celebration_note = data.get("celebration_note", "")
+            
+            for milestone in memory["milestones"]:
+                if milestone["id"] == milestone_id:
+                    milestone["celebrated"] = True
+                    milestone["celebration_date"] = datetime.date.today().isoformat()
+                    milestone["celebration_note"] = celebration_note
+                    break
+        
+        save_memory(memory)
+        return jsonify({"message": "Milestone updated successfully", "milestones": memory["milestones"]})
+        
+    except Exception as e:
+        logging.error(f"Error in milestone tracker: {e}")
+        return jsonify({"error": "Unable to update milestones"}), 500
+
+@app.route("/progress_report", methods=["GET"])
+def generate_progress_report():
+    """Generate comprehensive progress report"""
+    try:
+        memory = load_memory()
+        
+        # Calculate date ranges
+        today = datetime.date.today()
+        week_ago = today - datetime.timedelta(days=7)
+        month_ago = today - datetime.timedelta(days=30)
+        
+        # Analyze recent activity
+        recent_events = [e for e in memory.get("life_events", []) 
+                        if datetime.datetime.fromisoformat(e.get("timestamp", e.get("date"))).date() >= week_ago]
+        
+        recent_moods = [m for m in memory.get("mood_history", []) 
+                       if datetime.datetime.fromisoformat(m.get("timestamp")).date() >= week_ago]
+        
+        active_goals = [g for g in memory.get("goals", []) if g.get("status") == "active"]
+        completed_goals_month = [g for g in memory.get("goals", []) 
+                               if g.get("status") == "completed" and 
+                               datetime.datetime.fromisoformat(g.get("completed_date", today.isoformat())).date() >= month_ago]
+        
+        # Calculate habit streaks
+        habit_summary = []
+        for habit in memory.get("habits", []):
+            if habit.get("status") == "active":
+                habit_summary.append({
+                    "name": habit["name"],
+                    "current_streak": habit.get("current_streak", 0),
+                    "longest_streak": habit.get("longest_streak", 0),
+                    "completion_rate": len(habit.get("check_ins", [])) / max(1, 
+                        (today - datetime.datetime.fromisoformat(habit["created_date"]).date()).days)
+                })
+        
+        # Mood trend analysis
+        mood_trends = {}
+        for mood in recent_moods:
+            emotion = mood.get("emotion", "neutral")
+            if emotion not in mood_trends:
+                mood_trends[emotion] = []
+            mood_trends[emotion].append(mood.get("intensity", 5))
+        
+        # Calculate averages
+        avg_moods = {emotion: sum(intensities) / len(intensities) 
+                    for emotion, intensities in mood_trends.items()}
+        
+        report = {
+            "generated_date": today.isoformat(),
+            "period": "Last 7 days",
+            "summary": {
+                "conversations": len(recent_events),
+                "mood_entries": len(recent_moods),
+                "goals_completed_this_month": len(completed_goals_month),
+                "active_goals": len(active_goals),
+                "active_habits": len([h for h in memory.get("habits", []) if h.get("status") == "active"])
+            },
+            "mood_analysis": {
+                "average_moods": avg_moods,
+                "dominant_emotion": max(avg_moods.keys(), key=lambda k: avg_moods[k]) if avg_moods else "neutral",
+                "mood_stability": len(set(m.get("emotion") for m in recent_moods))
+            },
+            "habit_performance": habit_summary,
+            "recent_achievements": memory.get("achievements", [])[-5:],
+            "upcoming_goals": active_goals[:3],
+            "reflections": memory.get("reflections", [])[-3:]
+        }
+        
+        return jsonify(report)
+        
+    except Exception as e:
+        logging.error(f"Error generating progress report: {e}")
+        return jsonify({"error": "Unable to generate progress report"}), 500
+
+@app.route("/ai_coach_advice", methods=["POST"])
+def get_ai_coach_advice():
+    """Get personalized AI coaching advice based on current situation"""
+    try:
+        data = request.get_json()
+        situation = data.get("situation", "").strip()
+        advice_type = data.get("type", "general")  # general, crisis, motivation, planning
+        
+        memory = load_memory()
+        
+        # Build context from user's history
+        recent_events = memory.get("life_events", [])[-10:]
+        recent_moods = memory.get("mood_history", [])[-5:]
+        active_goals = [g for g in memory.get("goals", []) if g.get("status") == "active"]
+        recent_achievements = memory.get("achievements", [])[-3:]
+        
+        context_summary = {
+            "recent_conversations": [e.get("entry", "") for e in recent_events],
+            "recent_emotions": [f"{m.get('emotion', 'neutral')} ({m.get('intensity', 5)}/10)" for m in recent_moods],
+            "active_goals": [g.get("text", "") for g in active_goals],
+            "recent_wins": [a.get("title", "") for a in recent_achievements]
+        }
+        
+        if advice_type == "crisis":
+            system_prompt = f"""You are an empathetic crisis support AI coach. The user is going through a difficult time. 
+
+Current situation: {situation}
+
+User's context: {json.dumps(context_summary)}
+
+Provide immediate, supportive, and practical advice. Focus on:
+1. Emotional validation and support
+2. Immediate actionable steps they can take
+3. Resources or coping strategies
+4. Encouraging perspective while acknowledging their pain
+5. Building on their past achievements and strengths
+
+Be compassionate, direct, and helpful. Avoid generic advice."""
+
+        elif advice_type == "motivation":
+            system_prompt = f"""You are an energizing motivational coach. The user needs encouragement and motivation.
+
+Current situation: {situation}
+
+User's context: {json.dumps(context_summary)}
+
+Provide inspiring and practical motivation. Focus on:
+1. Highlighting their past achievements and progress
+2. Reframing challenges as opportunities
+3. Specific action steps to build momentum
+4. Connecting their current situation to their goals
+5. Energizing language that builds confidence
+
+Be uplifting, specific, and action-oriented."""
+
+        elif advice_type == "planning":
+            system_prompt = f"""You are a strategic life planning coach. The user needs help organizing and planning.
+
+Current situation: {situation}
+
+User's context: {json.dumps(context_summary)}
+
+Provide structured planning advice. Focus on:
+1. Breaking down the situation into manageable steps
+2. Prioritizing actions based on their goals
+3. Timeline recommendations
+4. Potential obstacles and solutions
+5. Connecting to their existing goals and habits
+
+Be systematic, practical, and thorough."""
+        
+        else:  # general
+            system_prompt = f"""You are a wise AI life coach providing personalized guidance.
+
+Current situation: {situation}
+
+User's context: {json.dumps(context_summary)}
+
+Provide thoughtful, personalized advice considering their history and patterns. Focus on:
+1. Understanding their unique situation and context
+2. Practical, actionable guidance
+3. Building on their strengths and past successes
+4. Addressing potential challenges
+5. Encouraging growth and positive change
+
+Be insightful, supportive, and specific to their situation."""
+        
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": situation}
+            ],
+            max_tokens=800,
+            temperature=0.7
+        )
+        
+        advice = response.choices[0].message.content
+        
+        # Save this advice session to memory
+        advice_entry = {
+            "date": datetime.date.today().isoformat(),
+            "timestamp": datetime.datetime.now().isoformat(),
+            "situation": situation,
+            "advice_type": advice_type,
+            "advice": advice
+        }
+        
+        memory["life_events"].append({
+            "date": datetime.date.today().isoformat(),
+            "timestamp": datetime.datetime.now().isoformat(),
+            "entry": f"Sought {advice_type} advice about: {situation[:100]}..."
+        })
+        
+        save_memory(memory)
+        
+        return jsonify({
+            "advice": advice,
+            "type": advice_type,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting AI coach advice: {e}")
+        return jsonify({"error": "Unable to provide advice right now"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
