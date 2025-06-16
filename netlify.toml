@@ -6,7 +6,7 @@
 
 [build.environment]
   PYTHON_VERSION = "3.9"
-  NODE_VERSION = "20"
+  NODE_VERSION = "18"
   PIP_CACHE_DIR = ".pip_cache"
   PYTHONPATH = "/opt/build/repo"
 
