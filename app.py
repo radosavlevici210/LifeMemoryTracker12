@@ -5,6 +5,8 @@ import logging
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from openai import OpenAI
+from security import rate_limiter, security_monitor, sanitize_input, log_security_event, system_health_check, auto_repair, backup_data, get_security_metrics
+from auto_updater import auto_updater
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -64,11 +66,15 @@ def save_memory(data):
         logging.error(f"Error saving memory file: {e}")
 
 @app.route("/")
+@rate_limiter(max_requests=100, window=60)
+@security_monitor
 def index():
     """Render the main chat interface"""
     return render_template("index.html")
 
 @app.route("/chat", methods=["POST"])
+@rate_limiter(max_requests=30, window=60)
+@security_monitor
 def chat():
     """Handle chat messages and provide AI responses"""
     try:
@@ -76,7 +82,10 @@ def chat():
         if not data or "message" not in data:
             return jsonify({"error": "Invalid request format"}), 400
         
-        user_input = data["message"].strip()
+        # Sanitize input
+        data = sanitize_input(data)
+        user_input = data.get("message", "").strip()
+        
         if not user_input:
             return jsonify({"error": "Message cannot be empty"}), 400
         
@@ -644,10 +653,14 @@ def generate_progress_report():
         return jsonify({"error": "Unable to generate progress report"}), 500
 
 @app.route("/ai_coach_advice", methods=["POST"])
+@rate_limiter(max_requests=10, window=60)
+@security_monitor
 def get_ai_coach_advice():
     """Get personalized AI coaching advice based on current situation"""
     try:
         data = request.get_json()
+        data = sanitize_input(data)
+        
         situation = data.get("situation", "").strip()
         advice_type = data.get("type", "general")  # general, crisis, motivation, planning
         
@@ -768,6 +781,135 @@ Be insightful, supportive, and specific to their situation."""
     except Exception as e:
         logging.error(f"Error getting AI coach advice: {e}")
         return jsonify({"error": "Unable to provide advice right now"}), 500
+
+# Production-ready system monitoring and management endpoints
+@app.route("/system/status", methods=["GET"])
+@rate_limiter(max_requests=20, window=60)
+@security_monitor
+def system_status():
+    """Get comprehensive system status"""
+    try:
+        health = system_health_check()
+        security_metrics = get_security_metrics()
+        updater_status = auto_updater.get_system_status()
+        
+        return jsonify({
+            "status": "operational",
+            "timestamp": datetime.datetime.now().isoformat(),
+            "health": health,
+            "security": security_metrics,
+            "auto_updater": updater_status,
+            "maintenance_mode": auto_updater.maintenance_mode
+        })
+    except Exception as e:
+        logging.error(f"Error getting system status: {e}")
+        return jsonify({"error": "Unable to retrieve system status"}), 500
+
+@app.route("/system/health", methods=["GET"])
+@rate_limiter(max_requests=100, window=60)
+def health_check():
+    """Simple health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "version": auto_updater.app_version
+    })
+
+@app.route("/system/repair", methods=["POST"])
+@rate_limiter(max_requests=5, window=300)  # 5 repairs per 5 minutes
+@security_monitor
+def trigger_repair():
+    """Trigger system auto-repair"""
+    try:
+        repairs = auto_repair()
+        log_security_event("manual_repair_triggered", {"repairs": repairs})
+        
+        return jsonify({
+            "status": "completed",
+            "repairs_performed": repairs,
+            "timestamp": datetime.datetime.now().isoformat()
+        })
+    except Exception as e:
+        logging.error(f"Error during manual repair: {e}")
+        return jsonify({"error": "Repair operation failed"}), 500
+
+@app.route("/system/backup", methods=["POST"])
+@rate_limiter(max_requests=10, window=3600)  # 10 backups per hour
+@security_monitor
+def create_backup():
+    """Create manual backup"""
+    try:
+        backup_filename = backup_data()
+        
+        if backup_filename:
+            return jsonify({
+                "status": "success",
+                "backup_file": backup_filename,
+                "timestamp": datetime.datetime.now().isoformat()
+            })
+        else:
+            return jsonify({"error": "Backup creation failed"}), 500
+            
+    except Exception as e:
+        logging.error(f"Error creating backup: {e}")
+        return jsonify({"error": "Backup operation failed"}), 500
+
+@app.route("/system/updates", methods=["GET"])
+@rate_limiter(max_requests=10, window=300)
+@security_monitor
+def check_updates():
+    """Check for system updates"""
+    try:
+        update_status = auto_updater.check_for_updates()
+        return jsonify(update_status)
+    except Exception as e:
+        logging.error(f"Error checking updates: {e}")
+        return jsonify({"error": "Update check failed"}), 500
+
+@app.route("/system/updates", methods=["POST"])
+@rate_limiter(max_requests=3, window=3600)  # 3 update attempts per hour
+@security_monitor
+def apply_updates():
+    """Apply system updates"""
+    try:
+        data = request.get_json() or {}
+        update_ids = data.get("update_ids", [])
+        
+        if not update_ids:
+            # Apply all pending updates
+            updates_to_apply = auto_updater.pending_updates
+        else:
+            # Apply specific updates
+            updates_to_apply = [
+                update for update in auto_updater.pending_updates
+                if update["id"] in update_ids
+            ]
+        
+        if not updates_to_apply:
+            return jsonify({"error": "No updates to apply"}), 400
+        
+        result = auto_updater.apply_updates(updates_to_apply)
+        return jsonify(result)
+        
+    except Exception as e:
+        logging.error(f"Error applying updates: {e}")
+        return jsonify({"error": "Update application failed"}), 500
+
+@app.route("/system/optimize", methods=["POST"])
+@rate_limiter(max_requests=5, window=1800)  # 5 optimizations per 30 minutes
+@security_monitor
+def optimize_system():
+    """Optimize system performance"""
+    try:
+        result = auto_updater.optimize_performance()
+        return jsonify(result)
+    except Exception as e:
+        logging.error(f"Error optimizing system: {e}")
+        return jsonify({"error": "Optimization failed"}), 500
+
+# Register admin blueprint
+from admin_dashboard import admin_bp
+app.register_blueprint(admin_bp)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
