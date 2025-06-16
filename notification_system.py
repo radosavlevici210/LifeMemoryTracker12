@@ -8,9 +8,11 @@ import datetime
 import logging
 import smtplib
 try:
-    from email.mime.text import MimeText
-    from email.mime.multipart import MimeMultipart
-except ImportError:
+    import email.mime.text
+    import email.mime.multipart
+    MimeText = email.mime.text.MimeText
+    MimeMultipart = email.mime.multipart.MimeMultipart
+except (ImportError, AttributeError):
     # Fallback for systems where email modules might not be available
     MimeText = None
     MimeMultipart = None

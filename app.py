@@ -10,7 +10,7 @@ from auto_updater import auto_updater
 from notification_system import notification_system, NotificationType, NotificationPriority
 try:
     from advanced_analytics import advanced_analytics
-except ImportError as e:
+except (ImportError, ModuleNotFoundError) as e:
     logging.error(f"Advanced analytics not available: {e}")
     advanced_analytics = None
 except Exception as e:
@@ -987,6 +987,9 @@ def notification_preferences():
 def get_comprehensive_analytics():
     """Get comprehensive analytics report"""
     try:
+        if advanced_analytics is None:
+            return jsonify({"error": "Analytics module not available"}), 503
+            
         memory = load_memory()
         analytics_report = advanced_analytics.generate_comprehensive_report(memory)
 
@@ -1002,6 +1005,9 @@ def get_comprehensive_analytics():
 def get_predictive_analytics():
     """Get predictive analytics and insights"""
     try:
+        if advanced_analytics is None:
+            return jsonify({"error": "Analytics module not available"}), 503
+            
         memory = load_memory()
 
         # Generate predictions
@@ -1032,6 +1038,9 @@ def get_predictive_analytics():
 def get_behavioral_analytics():
     """Get behavioral pattern analysis"""
     try:
+        if advanced_analytics is None:
+            return jsonify({"error": "Analytics module not available"}), 503
+            
         memory = load_memory()
 
         from advanced_analytics import AdvancedAnalytics
