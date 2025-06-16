@@ -856,7 +856,7 @@ def create_backup():
                 "status": "success",
                 "backup_file": backup_filename,
                 "timestamp": datetime.datetime.now().isoformat()
-            })```python
+            })
         else:
             return jsonify({"error": "Backup creation failed"}), 500
 

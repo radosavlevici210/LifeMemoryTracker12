@@ -261,6 +261,15 @@ def apply_system_updates():
         return jsonify({"error": "Update application failed"}), 500
 
 @admin_bp.route('/api/config/update', methods=['POST'])
+import datetime
+import logging
+from flask import Blueprint, request, jsonify
+from auto_updater import auto_updater
+from security import log_security_event
+
+admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+@admin_bp.route('/config', methods=['POST'])
 def update_configuration():
     """Update system configuration"""
     try:
