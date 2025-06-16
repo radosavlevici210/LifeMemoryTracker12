@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Life Coach - Admin Dashboard</title>
+    
+    <!-- Bootstrap CSS with Replit dark theme -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .metric-card {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            transition: transform 0.2s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-healthy { background-color: #28a745; }
+        .status-warning { background-color: #ffc107; }
+        .status-critical { background-color: #dc3545; }
+        
+        .admin-nav {
+            background: linear-gradient(45deg, #0d6efd, #6610f2);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .real-time-data {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .maintenance-button {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .maintenance-button:hover {
+            background: linear-gradient(45deg, #e55a2b, #e8841a);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin Navigation -->
+    <nav class="navbar navbar-dark admin-nav mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-shield-alt me-2"></i>
+                AI Life Coach - Admin Control Center
+            </span>
+            <div class="navbar-text">
+                <span class="badge bg-success me-2">
+                    <i class="fas fa-circle me-1"></i>
+                    System Online
+                </span>
+                <span class="text-light">{{ data.timestamp[:19] | replace('T', ' ') }}</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <!-- System Status Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-heartbeat me-2"></i>
+                            System Health Overview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="mb-2">
+                                    <span class="status-indicator status-{{ 'healthy' if data.system_health.status == 'healthy' else 'warning' if data.system_health.status == 'warning' else 'critical' }}"></span>
+                                    <span class="fw-bold">{{ data.system_health.status.title() }}</span>
+                                </div>
+                                <small class="text-muted">System Status</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="h4 text-info real-time-data">{{ data.security_metrics.active_sessions }}</div>
+                                <small class="text-muted">Active Sessions</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="h4 text-warning real-time-data">{{ data.updater_status.pending_updates }}</div>
+                                <small class="text-muted">Pending Updates</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="h4 text-success real-time-data">{{ data.security_metrics.recent_events }}</div>
+                                <small class="text-muted">Recent Events</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tools me-2"></i>
+                            Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <button class="btn maintenance-button w-100" onclick="triggerMaintenance('backup')">
+                                    <i class="fas fa-save me-2"></i>
+                                    Create Backup
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-warning w-100" onclick="triggerMaintenance('repair')">
+                                    <i class="fas fa-wrench me-2"></i>
+                                    Auto Repair
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-info w-100" onclick="checkUpdates()">
+                                    <i class="fas fa-sync me-2"></i>
+                                    Check Updates
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-success w-100" onclick="optimizeSystem()">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Optimize System
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Dashboard -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            User Engagement Analytics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="engagementChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            User Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Total Conversations</span>
+                                <span class="fw-bold text-primary">{{ data.user_stats.total_conversations }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Active Goals</span>
+                                <span class="fw-bold text-success">{{ data.user_stats.active_goals }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Active Habits</span>
+                                <span class="fw-bold text-warning">{{ data.user_stats.active_habits }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Mood Entries</span>
+                                <span class="fw-bold text-info">{{ data.user_stats.mood_entries }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Achievements</span>
+                                <span class="fw-bold text-danger">{{ data.user_stats.achievements }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Performance Metrics -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            System Performance
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if data.system_health.metrics %}
+                        <div class="mb-3">
+                            <label class="form-label">Memory Usage</label>
+                            <div class="progress">
+                                <div class="progress-bar" style="width: {{ data.system_health.metrics.memory_usage or 0 }}%">
+                                    {{ data.system_health.metrics.memory_usage or 0 }}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Disk Usage</label>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: {{ data.system_health.metrics.disk_usage or 0 }}%">
+                                    {{ data.system_health.metrics.disk_usage or 0 }}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                API Response Time: {{ data.system_health.metrics.api_response_time or 'N/A' }}ms
+                            </small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">System metrics not available</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Security Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Blocked IPs</span>
+                                <span class="badge bg-danger">{{ data.security_metrics.blocked_ips }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Recent Security Events</span>
+                                <span class="badge bg-warning">{{ data.security_metrics.recent_events }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Last Backup</span>
+                                <span class="text-success">{{ data.security_metrics.last_backup }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Auto-Updates</span>
+                                <span class="badge bg-success">Enabled</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>
+                            Recent Activity
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if data.recent_activity %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Activity</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for activity in data.recent_activity[-10:] %}
+                                    <tr>
+                                        <td>{{ activity.date }}</td>
+                                        <td>{{ activity.entry[:80] }}{% if activity.entry|length > 80 %}...{% endif %}</td>
+                                        <td><span class="badge bg-primary">Life Event</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No recent activity</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Logs (Placeholder) -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card metric-card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt me-2"></i>
+                            System Alerts & Issues
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if data.system_health.issues %}
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">System Issues Detected</h6>
+                            <ul class="mb-0">
+                                {% for issue in data.system_health.issues %}
+                                <li>{{ issue }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            All systems operating normally
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Initialize engagement chart
+        const ctx = document.getElementById('engagementChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Daily Conversations',
+                    data: [12, 19, 8, 15, 22, 13, 18],
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Goal Completions',
+                    data: [2, 3, 1, 4, 5, 2, 3],
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#ffffff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Admin functions
+        async function triggerMaintenance(taskType) {
+            try {
+                const response = await fetch('/admin/api/maintenance/trigger', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ task: taskType })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`${taskType.charAt(0).toUpperCase() + taskType.slice(1)} completed successfully!`);
+                    location.reload(); // Refresh to show updated metrics
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        async function checkUpdates() {
+            try {
+                const response = await fetch('/admin/api/updates/check');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.updates_available > 0) {
+                        if (confirm(`${result.updates_available} updates available. Apply now?`)) {
+                            await applyUpdates();
+                        }
+                    } else {
+                        alert('System is up to date!');
+                    }
+                } else {
+                    alert(`Error checking updates: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        async function applyUpdates() {
+            try {
+                const response = await fetch('/admin/api/updates/apply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`Updates applied: ${result.applied_updates} successful, ${result.failed_updates} failed`);
+                    location.reload();
+                } else {
+                    alert(`Error applying updates: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        async function optimizeSystem() {
+            try {
+                const response = await fetch('/system/optimize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(`System optimization completed! ${result.optimizations.length} optimizations performed.`);
+                    location.reload();
+                } else {
+                    alert(`Error optimizing system: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Network error: ${error.message}`);
+            }
+        }
+
+        // Auto-refresh dashboard every 30 seconds
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
