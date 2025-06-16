@@ -79,7 +79,6 @@ Advanced analytics capabilities for:
 ### Core Dependencies
 - **OpenAI**: GPT-4 API for conversational AI
 - **Flask**: Web framework and routing
-- **Flask-CORS**: Cross-origin resource sharing
 - **Gunicorn**: WSGI HTTP server
 
 ### Additional Dependencies
