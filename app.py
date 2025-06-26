@@ -304,6 +304,7 @@ Once updated, I'll be able to provide personalized AI life coaching."""
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/memory")
+@login_required
 def get_memory():
     """Get user's life memory data"""
     try:
@@ -314,6 +315,7 @@ def get_memory():
         return jsonify({"error": "Failed to retrieve memory"}), 500
 
 @app.route("/clear_memory", methods=["POST"])
+@login_required
 def clear_memory():
     """Clear user's life memory"""
     try:
@@ -352,6 +354,7 @@ try:
     analytics = AdvancedAnalytics()
     
     @app.route("/analytics", methods=["GET"])
+    @login_required
     def get_analytics():
         """Get advanced analytics report"""
         memory = load_memory()
@@ -368,6 +371,7 @@ try:
     notifications = NotificationSystem()
     
     @app.route("/notifications", methods=["GET"])
+    @login_required
     def get_notifications():
         """Get user notifications"""
         user_notifications = notifications.get_user_notifications(
@@ -385,6 +389,7 @@ try:
     collaboration = CollaborationTools()
     
     @app.route("/share", methods=["POST"])
+    @login_required
     def share_content():
         """Share user content"""
         data = request.get_json()
@@ -401,6 +406,7 @@ try:
         return jsonify({"share_id": share_id})
     
     @app.route("/feed", methods=["GET"])
+    @login_required
     def get_feed():
         """Get user feed"""
         feed = collaboration.get_feed(user_id=str(current_user.id))
@@ -416,6 +422,7 @@ try:
     recommendations_engine = SmartRecommendationsEngine()
     
     @app.route("/recommendations", methods=["GET"])
+    @login_required
     def get_recommendations():
         """Get personalized recommendations"""
         memory = load_memory()
@@ -431,6 +438,7 @@ try:
     voice_engine = VoiceInteractionEngine()
     
     @app.route("/voice/command", methods=["POST"])
+    @login_required
     def process_voice_command():
         """Process voice commands"""
         data = request.get_json()
@@ -441,6 +449,7 @@ try:
         return jsonify(result)
     
     @app.route("/voice/settings", methods=["GET", "POST"])
+    @login_required
     def voice_settings():
         """Get or update voice settings"""
         if request.method == "POST":
@@ -462,6 +471,7 @@ try:
     gamification = GamificationEngine()
     
     @app.route("/gamification/dashboard", methods=["GET"])
+    @login_required
     def get_gamification_dashboard():
         """Get gamification dashboard"""
         memory = load_memory()
@@ -469,6 +479,7 @@ try:
         return jsonify(dashboard)
     
     @app.route("/gamification/achievements", methods=["GET"])
+    @login_required
     def check_achievements():
         """Check for new achievements"""
         memory = load_memory()
@@ -504,6 +515,7 @@ try:
         })
     
     @app.route("/gamification/challenges", methods=["GET"])
+    @login_required
     def get_daily_challenges():
         """Get daily challenges"""
         memory = load_memory()
@@ -520,6 +532,7 @@ try:
     personality_engine = AIPersonalityEngine()
     
     @app.route("/personality/profile", methods=["GET"])
+    @login_required
     def get_personality_profile():
         """Get current AI personality profile"""
         memory = load_memory()
@@ -527,6 +540,7 @@ try:
         return jsonify(personality_engine.get_personality_summary())
     
     @app.route("/personality/adapt", methods=["POST"])
+    @login_required
     def adapt_personality():
         """Manually trigger personality adaptation"""
         memory = load_memory()
@@ -543,6 +557,7 @@ except ImportError as e:
 
 # Enhanced goal management
 @app.route("/goals", methods=["GET", "POST"])
+@login_required
 def manage_goals():
     """Enhanced goal management"""
     memory = load_memory()
@@ -571,6 +586,7 @@ def manage_goals():
     return jsonify(memory.get("goals", []))
 
 @app.route("/goals/<int:goal_id>/progress", methods=["POST"])
+@login_required
 def update_goal_progress(goal_id):
     """Update goal progress"""
     memory = load_memory()
@@ -591,6 +607,7 @@ def update_goal_progress(goal_id):
 
 # Enhanced habit tracking
 @app.route("/habits", methods=["GET", "POST"])
+@login_required
 def manage_habits():
     """Enhanced habit management"""
     memory = load_memory()
@@ -619,6 +636,7 @@ def manage_habits():
     return jsonify(memory.get("habits", []))
 
 @app.route("/habits/<int:habit_id>/complete", methods=["POST"])
+@login_required
 def complete_habit(habit_id):
     """Mark habit as completed for today"""
     memory = load_memory()
@@ -637,6 +655,7 @@ def complete_habit(habit_id):
 
 # Mood tracking with insights
 @app.route("/mood", methods=["GET", "POST"])
+@login_required
 def track_mood():
     """Enhanced mood tracking"""
     memory = load_memory()
