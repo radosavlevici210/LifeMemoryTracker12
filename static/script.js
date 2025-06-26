@@ -1,6 +1,8 @@
 // Life Coach Chat Application JavaScript
 
 let chatMessages = [];
+let gamificationData = null;
+let recommendationsData = null;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,6 +16,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Focus on input field
     document.getElementById('messageInput').focus();
+    
+    // Load initial data
+    loadGamificationData();
+    loadRecommendations();
 });
 
 // Send message to the AI life coach
@@ -1129,4 +1135,249 @@ async function getAdvice() {
         console.error('Error getting advice:', error);
         showAlert('Failed to get advice. Please try again.', 'danger');
     }
+}
+
+// Load gamification data
+async function loadGamificationData() {
+    try {
+        const response = await fetch('/gamification/dashboard');
+        gamificationData = await response.json();
+    } catch (error) {
+        console.error('Error loading gamification data:', error);
+    }
+}
+
+// Load recommendations
+async function loadRecommendations() {
+    try {
+        const response = await fetch('/recommendations');
+        recommendationsData = await response.json();
+    } catch (error) {
+        console.error('Error loading recommendations:', error);
+    }
+}
+
+// Show gamification dashboard
+function showGamificationDashboard() {
+    if (!gamificationData) {
+        showAlert('Loading progress data...', 'info');
+        loadGamificationData().then(() => {
+            if (gamificationData) {
+                displayGamificationModal();
+            }
+        });
+        return;
+    }
+    displayGamificationModal();
+}
+
+// Display gamification modal
+function displayGamificationModal() {
+    const stats = gamificationData.user_stats;
+    const progress = gamificationData.level_progress;
+    const challenges = gamificationData.daily_challenges;
+    
+    const modalContent = `
+        <div class="modal fade" id="gamificationModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-trophy text-warning me-2"></i>
+                            Your Progress Dashboard
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body">
+                                        <h3>${stats.level}</h3>
+                                        <small>Level</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body">
+                                        <h3>${stats.total_points}</h3>
+                                        <small>Points</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body">
+                                        <h3>${stats.streak_days}</h3>
+                                        <small>Day Streak</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body">
+                                        <h3>${stats.wellness_score}</h3>
+                                        <small>Wellness</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>Level Progress</h6>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: ${progress.progress_percentage}%">
+                                    ${progress.progress_percentage}%
+                                </div>
+                            </div>
+                            <small class="text-muted">${progress.points_needed} points to Level ${progress.next_level}</small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>Today's Challenges</h6>
+                            <div class="row">
+                                ${challenges.map(challenge => `
+                                    <div class="col-md-4 mb-2">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">${challenge.title}</h6>
+                                                <p class="card-text small">${challenge.description}</p>
+                                                <span class="badge bg-secondary">${challenge.points} points</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-quote-left me-2"></i>
+                            ${gamificationData.motivation_quote}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('gamificationModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    const modal = new bootstrap.Modal(document.getElementById('gamificationModal'));
+    modal.show();
+}
+
+// Show recommendations
+function showRecommendations() {
+    if (!recommendationsData) {
+        showAlert('Loading insights...', 'info');
+        loadRecommendations().then(() => {
+            if (recommendationsData) {
+                displayRecommendationsModal();
+            }
+        });
+        return;
+    }
+    displayRecommendationsModal();
+}
+
+// Display recommendations modal
+function displayRecommendationsModal() {
+    const recommendations = recommendationsData.recommendations || [];
+    const analysis = recommendationsData.user_analysis || {};
+    
+    const modalContent = `
+        <div class="modal fade" id="recommendationsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-lightbulb text-warning me-2"></i>
+                            Personalized Insights
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Your Progress</h6>
+                                        <div class="mb-2">
+                                            <small>Goal Completion: ${analysis.goal_completion_rate || 0}%</small>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-success" style="width: ${analysis.goal_completion_rate || 0}%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small>Habit Consistency: ${analysis.habit_consistency || 0}%</small>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-info" style="width: ${analysis.habit_consistency || 0}%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <small>Engagement: ${analysis.engagement_level || 0}%</small>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-primary" style="width: ${analysis.engagement_level || 0}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Current Status</h6>
+                                        <p><strong>Mood Trend:</strong> ${analysis.mood_trend || 'Stable'}</p>
+                                        <p><strong>Stress Level:</strong> ${analysis.stress_level || 'Moderate'}</p>
+                                        <p><strong>Total Recommendations:</strong> ${recommendationsData.total_recommendations || 0}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>Personalized Recommendations</h6>
+                            <div class="row">
+                                ${recommendations.slice(0, 6).map(rec => `
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">${rec.title}</h6>
+                                                <p class="card-text small">${rec.description}</p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="badge bg-primary">${rec.type}</span>
+                                                    <small class="text-muted">${rec.confidence}% confidence</small>
+                                                </div>
+                                                <small class="text-muted">${rec.timeline}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('recommendationsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    const modal = new bootstrap.Modal(document.getElementById('recommendationsModal'));
+    modal.show();
 }

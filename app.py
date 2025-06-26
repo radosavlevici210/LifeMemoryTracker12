@@ -203,11 +203,20 @@ Please provide a valid OpenAI API key to enable full AI coaching capabilities.""
                 "response": fallback_response,
                 "type": "system_message"
             })
+
+        # Load memory first
+        memory = load_memory()
+        
+        # Initialize advanced features
+        try:
+            from ai_personality_engine import AIPersonalityEngine
+            personality_engine = AIPersonalityEngine()
+            personality = personality_engine.adapt_personality(memory)
+            system_prompt = personality_engine.generate_system_prompt(personality, memory)
+        except ImportError:
+            system_prompt = "You are an empathetic AI Life Coach focused on helping users achieve their goals."
         
         today = datetime.date.today().isoformat()
-        
-        # Load and update memory
-        memory = load_memory()
         memory["life_events"].append({
             "date": today,
             "event": user_input,
@@ -390,6 +399,258 @@ try:
     logging.info("Collaboration tools registered successfully")
 except ImportError as e:
     logging.warning(f"Collaboration tools not available: {e}")
+
+# Register advanced features
+try:
+    from smart_recommendations import SmartRecommendationsEngine
+    recommendations_engine = SmartRecommendationsEngine()
+    
+    @app.route("/recommendations", methods=["GET"])
+    def get_recommendations():
+        """Get personalized recommendations"""
+        memory = load_memory()
+        recommendations = recommendations_engine.get_recommendation_summary(memory)
+        return jsonify(recommendations)
+    
+    logging.info("Smart recommendations registered successfully")
+except ImportError as e:
+    logging.warning(f"Smart recommendations not available: {e}")
+
+try:
+    from voice_interaction import VoiceInteractionEngine
+    voice_engine = VoiceInteractionEngine()
+    
+    @app.route("/voice/command", methods=["POST"])
+    def process_voice_command():
+        """Process voice commands"""
+        data = request.get_json()
+        command = data.get("command", "")
+        confidence = data.get("confidence", 0.8)
+        
+        result = voice_engine.process_voice_command(command, confidence)
+        return jsonify(result)
+    
+    @app.route("/voice/settings", methods=["GET", "POST"])
+    def voice_settings():
+        """Get or update voice settings"""
+        if request.method == "POST":
+            data = request.get_json()
+            if data.get("enabled"):
+                result = voice_engine.enable_voice_interaction()
+            else:
+                result = voice_engine.disable_voice_interaction()
+            return jsonify(result)
+        
+        return jsonify(voice_engine.get_voice_settings())
+    
+    logging.info("Voice interaction registered successfully")
+except ImportError as e:
+    logging.warning(f"Voice interaction not available: {e}")
+
+try:
+    from gamification_engine import GamificationEngine
+    gamification = GamificationEngine()
+    
+    @app.route("/gamification/dashboard", methods=["GET"])
+    def get_gamification_dashboard():
+        """Get gamification dashboard"""
+        memory = load_memory()
+        dashboard = gamification.get_gamification_dashboard(memory)
+        return jsonify(dashboard)
+    
+    @app.route("/gamification/achievements", methods=["GET"])
+    def check_achievements():
+        """Check for new achievements"""
+        memory = load_memory()
+        new_achievements = gamification.check_new_achievements(memory)
+        
+        # Add new achievements to memory
+        if new_achievements:
+            if "achievements" not in memory:
+                memory["achievements"] = []
+            
+            for achievement in new_achievements:
+                memory["achievements"].append({
+                    "id": achievement.id,
+                    "title": achievement.title,
+                    "description": achievement.description,
+                    "points": achievement.points,
+                    "achieved_date": achievement.achieved_date.isoformat() if achievement.achieved_date else None
+                })
+            
+            save_memory(memory)
+        
+        return jsonify({
+            "new_achievements": [
+                {
+                    "id": ach.id,
+                    "title": ach.title,
+                    "description": ach.description,
+                    "badge_icon": ach.badge_icon,
+                    "points": ach.points
+                }
+                for ach in new_achievements
+            ]
+        })
+    
+    @app.route("/gamification/challenges", methods=["GET"])
+    def get_daily_challenges():
+        """Get daily challenges"""
+        memory = load_memory()
+        stats = gamification.calculate_user_stats(memory)
+        challenges = gamification.generate_daily_challenges(memory, stats)
+        return jsonify({"challenges": challenges})
+    
+    logging.info("Gamification engine registered successfully")
+except ImportError as e:
+    logging.warning(f"Gamification engine not available: {e}")
+
+try:
+    from ai_personality_engine import AIPersonalityEngine
+    personality_engine = AIPersonalityEngine()
+    
+    @app.route("/personality/profile", methods=["GET"])
+    def get_personality_profile():
+        """Get current AI personality profile"""
+        memory = load_memory()
+        personality = personality_engine.adapt_personality(memory)
+        return jsonify(personality_engine.get_personality_summary())
+    
+    @app.route("/personality/adapt", methods=["POST"])
+    def adapt_personality():
+        """Manually trigger personality adaptation"""
+        memory = load_memory()
+        personality = personality_engine.adapt_personality(memory)
+        personality_engine.save_personality_profile()
+        return jsonify({
+            "message": "Personality adapted successfully",
+            "profile": personality_engine.get_personality_summary()
+        })
+    
+    logging.info("AI personality engine registered successfully")
+except ImportError as e:
+    logging.warning(f"AI personality engine not available: {e}")
+
+# Enhanced goal management
+@app.route("/goals", methods=["GET", "POST"])
+def manage_goals():
+    """Enhanced goal management"""
+    memory = load_memory()
+    
+    if request.method == "POST":
+        data = request.get_json()
+        goal = {
+            "id": len(memory.get("goals", [])) + 1,
+            "text": data.get("text", ""),
+            "category": data.get("category", "personal"),
+            "priority": data.get("priority", "medium"),
+            "target_date": data.get("target_date", ""),
+            "progress": 0,
+            "status": "active",
+            "created_date": datetime.datetime.now().isoformat(),
+            "milestones": data.get("milestones", [])
+        }
+        
+        if "goals" not in memory:
+            memory["goals"] = []
+        memory["goals"].append(goal)
+        save_memory(memory)
+        
+        return jsonify({"message": "Goal added successfully", "goal": goal})
+    
+    return jsonify(memory.get("goals", []))
+
+@app.route("/goals/<int:goal_id>/progress", methods=["POST"])
+def update_goal_progress(goal_id):
+    """Update goal progress"""
+    memory = load_memory()
+    data = request.get_json()
+    progress = data.get("progress", 0)
+    
+    goals = memory.get("goals", [])
+    for goal in goals:
+        if goal.get("id") == goal_id:
+            goal["progress"] = min(max(progress, 0), 100)
+            if goal["progress"] >= 100:
+                goal["status"] = "completed"
+                goal["completed_date"] = datetime.datetime.now().isoformat()
+            break
+    
+    save_memory(memory)
+    return jsonify({"message": "Goal progress updated"})
+
+# Enhanced habit tracking
+@app.route("/habits", methods=["GET", "POST"])
+def manage_habits():
+    """Enhanced habit management"""
+    memory = load_memory()
+    
+    if request.method == "POST":
+        data = request.get_json()
+        habit = {
+            "id": len(memory.get("habits", [])) + 1,
+            "text": data.get("text", ""),
+            "frequency": data.get("frequency", 7),  # times per week
+            "category": data.get("category", "health"),
+            "current_streak": 0,
+            "best_streak": 0,
+            "status": "active",
+            "created_date": datetime.datetime.now().isoformat(),
+            "last_completed": None
+        }
+        
+        if "habits" not in memory:
+            memory["habits"] = []
+        memory["habits"].append(habit)
+        save_memory(memory)
+        
+        return jsonify({"message": "Habit added successfully", "habit": habit})
+    
+    return jsonify(memory.get("habits", []))
+
+@app.route("/habits/<int:habit_id>/complete", methods=["POST"])
+def complete_habit(habit_id):
+    """Mark habit as completed for today"""
+    memory = load_memory()
+    today = datetime.date.today().isoformat()
+    
+    habits = memory.get("habits", [])
+    for habit in habits:
+        if habit.get("id") == habit_id:
+            habit["last_completed"] = today
+            habit["current_streak"] = habit.get("current_streak", 0) + 1
+            habit["best_streak"] = max(habit.get("best_streak", 0), habit["current_streak"])
+            break
+    
+    save_memory(memory)
+    return jsonify({"message": "Habit completed for today"})
+
+# Mood tracking with insights
+@app.route("/mood", methods=["GET", "POST"])
+def track_mood():
+    """Enhanced mood tracking"""
+    memory = load_memory()
+    
+    if request.method == "POST":
+        data = request.get_json()
+        mood_entry = {
+            "date": datetime.date.today().isoformat(),
+            "timestamp": datetime.datetime.now().isoformat(),
+            "mood": data.get("mood", 5),
+            "energy": data.get("energy", 5),
+            "stress": data.get("stress", 5),
+            "notes": data.get("notes", ""),
+            "tags": data.get("tags", [])
+        }
+        
+        if "mood_history" not in memory:
+            memory["mood_history"] = []
+        memory["mood_history"].append(mood_entry)
+        save_memory(memory)
+        
+        return jsonify({"message": "Mood tracked successfully", "mood": mood_entry})
+    
+    return jsonify(memory.get("mood_history", []))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
