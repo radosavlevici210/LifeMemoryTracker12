@@ -36,7 +36,7 @@ db.init_app(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 
 # OpenAI configuration with connection pooling
@@ -287,6 +287,82 @@ def health_check():
         "database": "connected" if db.engine else "disconnected",
         "openai": "configured" if openai_client else "not configured"
     })
+
+# Register admin dashboard blueprint
+try:
+    from admin_dashboard import admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    logging.info("Admin dashboard registered successfully")
+except ImportError as e:
+    logging.warning(f"Admin dashboard not available: {e}")
+
+# Register additional features
+try:
+    from advanced_analytics import AdvancedAnalytics
+    analytics = AdvancedAnalytics()
+    
+    @app.route("/analytics", methods=["GET"])
+    @login_required
+    def get_analytics():
+        """Get advanced analytics report"""
+        memory = load_memory()
+        report = analytics.generate_comprehensive_report(memory)
+        return jsonify(report)
+    
+    logging.info("Advanced analytics registered successfully")
+except ImportError as e:
+    logging.warning(f"Advanced analytics not available: {e}")
+
+# Register notification system
+try:
+    from notification_system import NotificationSystem
+    notifications = NotificationSystem()
+    
+    @app.route("/notifications", methods=["GET"])
+    @login_required
+    def get_notifications():
+        """Get user notifications"""
+        user_notifications = notifications.get_user_notifications(
+            user_id=str(current_user.id) if current_user.is_authenticated else "default"
+        )
+        return jsonify(user_notifications)
+    
+    logging.info("Notification system registered successfully")
+except ImportError as e:
+    logging.warning(f"Notification system not available: {e}")
+
+# Register collaboration tools
+try:
+    from collaboration_tools import CollaborationTools
+    collaboration = CollaborationTools()
+    
+    @app.route("/share", methods=["POST"])
+    @login_required
+    def share_content():
+        """Share user content"""
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request"}), 400
+        
+        share_id = collaboration.create_share(
+            user_id=str(current_user.id),
+            share_type=data.get("type"),
+            title=data.get("title"),
+            content=data.get("content"),
+            visibility=data.get("visibility", "private")
+        )
+        return jsonify({"share_id": share_id})
+    
+    @app.route("/feed", methods=["GET"])
+    @login_required
+    def get_feed():
+        """Get user feed"""
+        feed = collaboration.get_feed(user_id=str(current_user.id))
+        return jsonify(feed)
+    
+    logging.info("Collaboration tools registered successfully")
+except ImportError as e:
+    logging.warning(f"Collaboration tools not available: {e}")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -274,6 +274,11 @@ class NotificationSystem:
     def _generate_smart_notifications(self):
         """Generate intelligent notifications based on user patterns"""
         try:
+            # Import within Flask app context
+            from flask import has_request_context
+            if not has_request_context():
+                return  # Skip if not in request context
+                
             from app import load_memory
             memory = load_memory()
             now = datetime.datetime.now()

@@ -1,27 +1,3 @@
-# ============================================
-# Project: LifeMemoryTracker12
-# Author: Ervin Remus Radosavlevici
-# Copyright: © 2025 Ervin Remus Radosavlevici
-# All rights reserved. Protected under digital trace monitoring.
-# Unauthorized usage will trigger automated reports.
-# ============================================
-
-import datetime
-import socket
-import platform
-import getpass
-
-def log_access():
-    log_info = {
-        "timestamp": datetime.datetime.now().isoformat(),
-        "hostname": socket.gethostname(),
-        "platform": platform.platform(),
-        "user": getpass.getuser()
-    }
-    with open("access_log.txt", "a") as f:
-        f.write(str(log_info) + "\n")
-
-log_access()
 """
 Security and monitoring module for AI Life Coach application
 """
@@ -167,4 +143,15 @@ def get_basic_metrics():
         "system_health": system_health,
         "uptime": "System running normally",
         "recent_events": len(security_events[-100:]) if security_events else 0
+    }
+
+def get_security_metrics():
+    """Get security metrics for admin dashboard"""
+    return {
+        "total_events": len(security_events),
+        "recent_events": security_events[-10:] if security_events else [],
+        "system_status": system_health.get("status", "unknown"),
+        "last_check": system_health.get("last_check", "never"),
+        "active_issues": len(system_health.get("issues", [])),
+        "metrics": system_health.get("metrics", {})
     }
