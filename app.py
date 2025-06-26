@@ -989,10 +989,10 @@ def make_session_permanent():
 
 # Register mega features engine
 try:
-    from mega_features_engine import mega_features
-    from ultra_ai_engine import ultra_ai
-    from hyper_productivity_engine import hyper_productivity
-    from ultimate_wellness_engine import ultimate_wellness
+    from mega_features_engine_simple import mega_features
+    from ultra_ai_engine_simple import ultra_ai
+    from hyper_productivity_engine_simple import hyper_productivity
+    from ultimate_wellness_engine_simple import ultimate_wellness
 
     @app.route("/mega-features", methods=["GET"])
     @login_required
@@ -1099,7 +1099,7 @@ except ImportError as e:
 
 # Register quantum mega engine with 10 million features
 try:
-    from quantum_mega_engine import quantum_mega_engine
+    from quantum_mega_engine_simple import quantum_mega_engine
 
     @app.route("/quantum-mega", methods=["POST"])
     @login_required
