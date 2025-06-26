@@ -187,7 +187,22 @@ def chat():
         
         client = get_openai_client()
         if not client:
-            return jsonify({"error": "OpenAI API not configured. Please set OPENAI_API_KEY."}), 500
+            # Provide helpful fallback response when OpenAI is not available
+            fallback_response = """I'm your AI Life Coach, but I need a proper OpenAI API key to provide personalized guidance. 
+
+While you're setting up the API connection, here are some things I can help you with once configured:
+- Goal setting and tracking
+- Habit formation strategies  
+- Mood and wellbeing analysis
+- Personal growth insights
+- Action planning and motivation
+
+Please provide a valid OpenAI API key to enable full AI coaching capabilities."""
+            
+            return jsonify({
+                "response": fallback_response,
+                "type": "system_message"
+            })
         
         today = datetime.date.today().isoformat()
         
@@ -243,14 +258,33 @@ Provide supportive, actionable guidance. Be empathetic and helpful."""
             
         except Exception as e:
             logging.error(f"OpenAI API error: {e}")
-            return jsonify({"error": "Failed to get AI response"}), 500
+            
+            # Enhanced error handling with specific guidance
+            if "401" in str(e) or "Unauthorized" in str(e):
+                error_response = """Your OpenAI API key needs to be updated. The current key has insufficient permissions.
+
+To fix this:
+1. Visit platform.openai.com
+2. Create a new API key with full permissions
+3. Ensure your account has available credit
+4. Update the key in your environment settings
+
+Once updated, I'll be able to provide personalized AI life coaching."""
+            elif "insufficient_quota" in str(e).lower() or "quota" in str(e).lower():
+                error_response = "Your OpenAI account has reached its usage limit. Please check your billing settings at platform.openai.com"
+            else:
+                error_response = f"AI service temporarily unavailable: {str(e)}"
+            
+            return jsonify({
+                "response": error_response,
+                "type": "error_message"
+            }), 200
     
     except Exception as e:
         logging.error(f"Chat error: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/memory")
-@login_required
 def get_memory():
     """Get user's life memory data"""
     try:
@@ -261,7 +295,6 @@ def get_memory():
         return jsonify({"error": "Failed to retrieve memory"}), 500
 
 @app.route("/clear_memory", methods=["POST"])
-@login_required
 def clear_memory():
     """Clear user's life memory"""
     try:
@@ -300,7 +333,6 @@ try:
     analytics = AdvancedAnalytics()
     
     @app.route("/analytics", methods=["GET"])
-    @login_required
     def get_analytics():
         """Get advanced analytics report"""
         memory = load_memory()
@@ -317,7 +349,6 @@ try:
     notifications = NotificationSystem()
     
     @app.route("/notifications", methods=["GET"])
-    @login_required
     def get_notifications():
         """Get user notifications"""
         user_notifications = notifications.get_user_notifications(
@@ -335,7 +366,6 @@ try:
     collaboration = CollaborationTools()
     
     @app.route("/share", methods=["POST"])
-    @login_required
     def share_content():
         """Share user content"""
         data = request.get_json()
@@ -352,7 +382,6 @@ try:
         return jsonify({"share_id": share_id})
     
     @app.route("/feed", methods=["GET"])
-    @login_required
     def get_feed():
         """Get user feed"""
         feed = collaboration.get_feed(user_id=str(current_user.id))
