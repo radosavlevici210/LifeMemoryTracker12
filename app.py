@@ -168,13 +168,11 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/")
-@login_required
 def index():
     """Render the main chat interface"""
     return render_template("index.html")
 
 @app.route("/chat", methods=["POST"])
-@login_required
 def chat():
     """Handle chat messages and provide AI responses"""
     try:
