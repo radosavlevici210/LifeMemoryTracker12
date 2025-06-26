@@ -1,28 +1,3 @@
-# ============================================
-# Project: LifeMemoryTracker12
-# Author: Ervin Remus Radosavlevici
-# Copyright: © 2025 Ervin Remus Radosavlevici
-# All rights reserved. Protected under digital trace monitoring.
-# Unauthorized usage will trigger automated reports.
-# ============================================
-
-import datetime
-import socket
-import platform
-import getpass
-
-def log_access():
-    log_info = {
-        "timestamp": datetime.datetime.now().isoformat(),
-        "hostname": socket.gethostname(),
-        "platform": platform.platform(),
-        "user": getpass.getuser()
-    }
-    with open("access_log.txt", "a") as f:
-        f.write(str(log_info) + "\n")
-
-log_access()
-
 import os
 import json
 import datetime
@@ -45,7 +20,7 @@ db = SQLAlchemy(model_class=Base)
 
 # Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET") or "dev-secret-key-for-migration"
+app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Database configuration
@@ -81,17 +56,16 @@ def get_openai_client():
 
 MEMORY_FILE = "life_memory.json"
 
-# Import models after db initialization
-from models import User, UserMemory
-
 # Create database tables
 with app.app_context():
+    # Import models here to avoid circular imports
+    import models
     db.create_all()
     
     # Create default user if not exists
-    default_user = User.query.filter_by(username='Ervin').first()
+    default_user = models.User.query.filter_by(username='Ervin').first()
     if not default_user:
-        default_user = User(username='Ervin')
+        default_user = models.User(username='Ervin', email='ervin@example.com')
         default_user.set_password('Quantum210')
         db.session.add(default_user)
         db.session.commit()
@@ -99,12 +73,14 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    import models
+    return models.User.query.get(int(user_id))
 
 def load_memory():
     """Load user's life memory from database or JSON file"""
     if current_user.is_authenticated:
-        user_memory = UserMemory.query.filter_by(user_id=current_user.id).first()
+        import models
+        user_memory = models.UserMemory.query.filter_by(user_id=current_user.id).first()
         if user_memory:
             try:
                 return json.loads(user_memory.memory_data)
@@ -143,9 +119,10 @@ def load_memory():
 def save_memory(data):
     """Save user's life memory to database or JSON file"""
     if current_user.is_authenticated:
-        user_memory = UserMemory.query.filter_by(user_id=current_user.id).first()
+        import models
+        user_memory = models.UserMemory.query.filter_by(user_id=current_user.id).first()
         if not user_memory:
-            user_memory = UserMemory(user_id=current_user.id, memory_data=json.dumps(data))
+            user_memory = models.UserMemory(user_id=current_user.id, memory_data=json.dumps(data))
             db.session.add(user_memory)
         else:
             user_memory.memory_data = json.dumps(data)
@@ -170,7 +147,8 @@ def login():
             flash("Please enter both username and password")
             return render_template("login.html")
         
-        user = User.query.filter_by(username=username).first()
+        import models
+        user = models.User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
             login_user(user)
