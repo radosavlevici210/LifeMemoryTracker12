@@ -764,5 +764,11 @@ def rate_limit_exceeded(error):
         "message": "Please wait before making more requests"
     }), 429
 
+# Make session permanent for better user experience
+@app.before_request
+def make_session_permanent():
+    from flask import session
+    session.permanent = True
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

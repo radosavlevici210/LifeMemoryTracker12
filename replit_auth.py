@@ -31,35 +31,49 @@ class UserSessionStorage(BaseStorage):
 
     def get(self, blueprint):
         try:
-            token = db.session.query(OAuth).filter_by(
+            if not current_user.is_authenticated:
+                return None
+            oauth_record = db.session.query(OAuth).filter_by(
                 user_id=current_user.get_id(),
                 browser_session_key=g.browser_session_key,
                 provider=blueprint.name,
-            ).one().token
-        except NoResultFound:
-            token = None
-        return token
+            ).one()
+            return oauth_record.token
+        except (NoResultFound, AttributeError):
+            return None
 
     def set(self, blueprint, token):
-        db.session.query(OAuth).filter_by(
-            user_id=current_user.get_id(),
-            browser_session_key=g.browser_session_key,
-            provider=blueprint.name,
-        ).delete()
-        new_model = OAuth()
-        new_model.user_id = current_user.get_id()
-        new_model.browser_session_key = g.browser_session_key
-        new_model.provider = blueprint.name
-        new_model.token = token
-        db.session.add(new_model)
-        db.session.commit()
+        if not current_user.is_authenticated:
+            return
+        try:
+            db.session.query(OAuth).filter_by(
+                user_id=current_user.get_id(),
+                browser_session_key=g.browser_session_key,
+                provider=blueprint.name,
+            ).delete()
+            new_model = OAuth()
+            new_model.user_id = current_user.get_id()
+            new_model.browser_session_key = g.browser_session_key
+            new_model.provider = blueprint.name
+            new_model.token = token
+            db.session.add(new_model)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error setting OAuth token: {e}")
 
     def delete(self, blueprint):
-        db.session.query(OAuth).filter_by(
-            user_id=current_user.get_id(),
-            browser_session_key=g.browser_session_key,
-            provider=blueprint.name).delete()
-        db.session.commit()
+        if not current_user.is_authenticated:
+            return
+        try:
+            db.session.query(OAuth).filter_by(
+                user_id=current_user.get_id(),
+                browser_session_key=g.browser_session_key,
+                provider=blueprint.name).delete()
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting OAuth token: {e}")
 
 
 def make_replit_blueprint():
@@ -140,14 +154,20 @@ def save_user(user_claims):
 
 @oauth_authorized.connect
 def logged_in(blueprint, token):
-    user_claims = jwt.decode(token['id_token'],
-                             options={"verify_signature": False})
-    user = save_user(user_claims)
-    login_user(user)
-    blueprint.token = token
-    next_url = session.pop("next_url", None)
-    if next_url is not None:
-        return redirect(next_url)
+    try:
+        user_claims = jwt.decode(token['id_token'],
+                                 options={"verify_signature": False})
+        user = save_user(user_claims)
+        login_user(user, remember=True)
+        blueprint.token = token
+        next_url = session.pop("next_url", None)
+        if next_url and next_url != "/":
+            return redirect(next_url)
+        else:
+            return redirect("/")
+    except Exception as e:
+        print(f"Login error: {e}")
+        return redirect(url_for('replit_auth.error'))
 
 
 @oauth_error.connect
@@ -163,18 +183,24 @@ def require_login(f):
             session["next_url"] = get_next_navigation_url(request)
             return redirect(url_for('replit_auth.login'))
 
-        expires_in = replit.token.get('expires_in', 0)
-        if expires_in < 0:
-            issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
-            refresh_token_url = issuer_url + "/token"
-            try:
-                token = replit.refresh_token(token_url=refresh_token_url,
-                                             client_id=os.environ['REPL_ID'])
-            except InvalidGrantError:
-                # If the refresh token is invalid, the users needs to re-login.
-                session["next_url"] = get_next_navigation_url(request)
-                return redirect(url_for('replit_auth.login'))
-            replit.token_updater(token)
+        try:
+            if replit.token:
+                expires_in = replit.token.get('expires_in', 0)
+                if expires_in < 0:
+                    issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
+                    refresh_token_url = issuer_url + "/token"
+                    try:
+                        token = replit.refresh_token(token_url=refresh_token_url,
+                                                     client_id=os.environ['REPL_ID'])
+                    except InvalidGrantError:
+                        # If the refresh token is invalid, the users needs to re-login.
+                        session["next_url"] = get_next_navigation_url(request)
+                        return redirect(url_for('replit_auth.login'))
+                    replit.token_updater(token)
+        except (AttributeError, TypeError):
+            # Token not available or invalid, redirect to login
+            session["next_url"] = get_next_navigation_url(request)
+            return redirect(url_for('replit_auth.login'))
 
         return f(*args, **kwargs)
 
