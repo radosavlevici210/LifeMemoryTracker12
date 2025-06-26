@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Life Coach - Your Personal Development Journey</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <span class="navbar-brand">
+                <i class="fas fa-brain me-2"></i>AI Life Coach
+            </span>
+            <div class="ms-auto">
+                <a href="{{ url_for('replit_auth.login') }}" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section py-5">
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-4">
+                        Transform Your Life with AI-Powered Coaching
+                    </h1>
+                    <p class="lead mb-4">
+                        Experience personalized guidance, goal tracking, and wellbeing insights 
+                        tailored specifically for your journey. Join thousands who've already 
+                        transformed their lives.
+                    </p>
+                    <div class="d-grid gap-2 d-md-flex">
+                        <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg me-md-2">
+                            <i class="fas fa-rocket me-2"></i>Get Started Free
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="feature-preview bg-secondary rounded-3 p-4">
+                        <h5 class="mb-3"><i class="fas fa-comments text-primary me-2"></i>AI Chat Preview</h5>
+                        <div class="chat-preview">
+                            <div class="message user-message mb-2">
+                                <small class="text-muted">You:</small><br>
+                                "I want to build better morning habits"
+                            </div>
+                            <div class="message ai-message">
+                                <small class="text-primary">AI Coach:</small><br>
+                                "Great goal! Let's create a personalized morning routine that fits your lifestyle. 
+                                I'll help you track progress and adapt as needed. What time do you usually wake up?"
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section py-5 bg-secondary">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col">
+                    <h2 class="display-5 fw-bold">Powerful Features for Your Growth</h2>
+                    <p class="lead">Everything you need to achieve your personal development goals</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card h-100 p-4 text-center">
+                        <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                        <h5>AI Personality Engine</h5>
+                        <p>Adaptive coaching that learns your communication style and preferences</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card h-100 p-4 text-center">
+                        <i class="fas fa-target fa-3x text-success mb-3"></i>
+                        <h5>Smart Goal Tracking</h5>
+                        <p>Set, track, and achieve goals with intelligent progress insights</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card h-100 p-4 text-center">
+                        <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                        <h5>Advanced Analytics</h5>
+                        <p>Deep insights into your habits, mood patterns, and progress trends</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card h-100 p-4 text-center">
+                        <i class="fas fa-gamepad fa-3x text-warning mb-3"></i>
+                        <h5>Gamification</h5>
+                        <p>Earn points, unlock achievements, and stay motivated with challenges</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="benefits-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-4">Why Choose AI Life Coach?</h2>
+                    <div class="benefit-list">
+                        <div class="benefit-item d-flex mb-3">
+                            <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                            <div>
+                                <h6>24/7 Personalized Support</h6>
+                                <p class="mb-0 text-muted">Your AI coach is always available when you need guidance</p>
+                            </div>
+                        </div>
+                        <div class="benefit-item d-flex mb-3">
+                            <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                            <div>
+                                <h6>Data-Driven Insights</h6>
+                                <p class="mb-0 text-muted">Make informed decisions with comprehensive analytics</p>
+                            </div>
+                        </div>
+                        <div class="benefit-item d-flex mb-3">
+                            <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                            <div>
+                                <h6>Adaptive Learning</h6>
+                                <p class="mb-0 text-muted">AI that grows with you and adapts to your changing needs</p>
+                            </div>
+                        </div>
+                        <div class="benefit-item d-flex mb-3">
+                            <i class="fas fa-check-circle text-success me-3 mt-1"></i>
+                            <div>
+                                <h6>Privacy & Security</h6>
+                                <p class="mb-0 text-muted">Your personal journey stays private and secure</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="stats-grid">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="stat-card bg-primary p-3 rounded text-center">
+                                    <h3 class="fw-bold">100%</h3>
+                                    <small>Production Ready</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card bg-success p-3 rounded text-center">
+                                    <h3 class="fw-bold">15+</h3>
+                                    <small>Advanced Features</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card bg-info p-3 rounded text-center">
+                                    <h3 class="fw-bold">24/7</h3>
+                                    <small>AI Support</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card bg-warning p-3 rounded text-center">
+                                    <h3 class="fw-bold">∞</h3>
+                                    <small>Growth Potential</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section py-5 bg-primary">
+        <div class="container text-center">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <h2 class="display-5 fw-bold mb-4">Ready to Transform Your Life?</h2>
+                    <p class="lead mb-4">
+                        Join the AI Life Coach community and start your personalized development journey today.
+                        No credit card required.
+                    </p>
+                    <a href="{{ url_for('replit_auth.login') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Start Your Journey Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer py-4 bg-dark">
+        <div class="container text-center">
+            <p class="mb-0 text-muted">
+                &copy; 2025 AI Life Coach. Powered by advanced AI technology.
+            </p>
+        </div>
+    </footer>
+
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .chat-preview {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .message {
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+        .user-message {
+            background: rgba(0, 123, 255, 0.2);
+        }
+        .ai-message {
+            background: rgba(40, 167, 69, 0.2);
+        }
+        .stat-card {
+            transition: transform 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

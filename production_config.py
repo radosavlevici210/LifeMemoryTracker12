@@ -1,149 +1,94 @@
-# ============================================
-# Project: LifeMemoryTracker12
-# Author: Ervin Remus Radosavlevici
-# Copyright: © 2025 Ervin Remus Radosavlevici
-# All rights reserved. Protected under digital trace monitoring.
-# Unauthorized usage will trigger automated reports.
-# ============================================
-
-import datetime
-import socket
-import platform
-import getpass
-
-def log_access():
-    log_info = {
-        "timestamp": datetime.datetime.now().isoformat(),
-        "hostname": socket.gethostname(),
-        "platform": platform.platform(),
-        "user": getpass.getuser()
-    }
-    with open("access_log.txt", "a") as f:
-        f.write(str(log_info) + "\n")
-
-log_access()
 """
-Production Configuration for AI Life Coach Application
+Production Configuration and Optimization
 """
 import os
 import logging
-import time
-from datetime import timedelta
+from datetime import datetime
 
 class ProductionConfig:
     """Production configuration settings"""
     
-    # Flask Configuration
-    SECRET_KEY = os.environ.get('SESSION_SECRET', os.urandom(32))
-    DEBUG = False
-    TESTING = False
+    # Security Settings
+    SECRET_KEY = os.environ.get('SESSION_SECRET')
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     
-    # Security Configuration
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+    # Performance Settings
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file upload
+    SEND_FILE_MAX_AGE_DEFAULT = 31536000  # 1 year cache for static files
     
+    # Database Settings
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 300,
+        'pool_pre_ping': True,
+        'pool_timeout': 30,
+        'max_overflow': 20
+    }
     
+    # Rate Limiting
+    RATELIMIT_STORAGE_URL = "memory://"
+    RATELIMIT_DEFAULT = "100 per hour"
     
     # Logging Configuration
     LOG_LEVEL = logging.INFO
     LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s %(message)s'
     
+    # API Settings
+    API_TIMEOUT = 30
+    MAX_RETRIES = 3
     
+    # Feature Flags
+    ENABLE_ANALYTICS = True
+    ENABLE_GAMIFICATION = True
+    ENABLE_VOICE_INTERACTION = True
+    ENABLE_RECOMMENDATIONS = True
+    ENABLE_PERSONALITY_ENGINE = True
     
-    # Performance Configuration
-    SEND_FILE_MAX_AGE_DEFAULT = timedelta(days=365)  # Static file caching
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload
+    # Health Check Settings
+    HEALTH_CHECK_INTERVAL = 60  # seconds
     
-    # External Services
-    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-    OPENAI_MODEL = 'gpt-4'
-    OPENAI_MAX_TOKENS = 1000
-    OPENAI_TEMPERATURE = 0.7
-    
-    # Email Configuration (for notifications)
-    SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-    SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-    SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
-    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
-    
-    # File Storage
-    DATA_DIRECTORY = os.environ.get('DATA_DIRECTORY', './data')
-    BACKUP_DIRECTORY = os.environ.get('BACKUP_DIRECTORY', './backups')
-    LOG_DIRECTORY = os.environ.get('LOG_DIRECTORY', './logs')
-    
-    # Health Check Configuration
-    HEALTH_CHECK_TIMEOUT = 30
-    HEALTH_CHECK_ENDPOINTS = [
-        '/health',
-        '/api/system/status'
-    ]
-    
-    # Monitoring
-    ENABLE_METRICS = True
-    METRICS_ENDPOINT = '/metrics'
-    ENABLE_PROFILING = False
-    
-    @classmethod
-    def init_app(cls, app):
-        """Initialize application with production configuration"""
-        
-        # Configure logging
+    @staticmethod
+    def configure_logging():
+        """Configure production logging"""
         logging.basicConfig(
-            level=cls.LOG_LEVEL,
-            format=cls.LOG_FORMAT
+            level=ProductionConfig.LOG_LEVEL,
+            format=ProductionConfig.LOG_FORMAT,
+            handlers=[
+                logging.StreamHandler(),
+                logging.FileHandler('app.log')
+            ]
         )
         
-        # Ensure directories exist
-        for directory in [cls.DATA_DIRECTORY, cls.BACKUP_DIRECTORY, cls.LOG_DIRECTORY]:
-            os.makedirs(directory, exist_ok=True)
+        # Reduce noise from external libraries
+        logging.getLogger('urllib3').setLevel(logging.WARNING)
+        logging.getLogger('requests').setLevel(logging.WARNING)
+        logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    
+    @staticmethod
+    def validate_environment():
+        """Validate required environment variables"""
+        required_vars = ['SESSION_SECRET', 'DATABASE_URL', 'OPENAI_API_KEY']
+        missing_vars = [var for var in required_vars if not os.environ.get(var)]
         
+        if missing_vars:
+            raise EnvironmentError(f"Missing required environment variables: {missing_vars}")
         
-        
-        # Configure error handling
-        @app.errorhandler(404)
-        def not_found_error(error):
-            return {'error': 'Resource not found'}, 404
-        
-        @app.errorhandler(500)
-        def internal_error(error):
-            return {'error': 'Internal server error'}, 500
-        
-        @app.errorhandler(429)
-        def ratelimit_handler(e):
-            return {'error': 'Rate limit exceeded'}, 429
-        
-        # Health check endpoint
-        @app.route('/health')
-        def health_check():
-            return {
-                'status': 'healthy',
-                'version': '1.0.0',
-                'timestamp': time.time()
+        return True
+    
+    @staticmethod
+    def get_version_info():
+        """Get application version information"""
+        return {
+            "version": "2.0.0",
+            "build_date": datetime.now().isoformat(),
+            "environment": "production",
+            "features": {
+                "ai_chat": True,
+                "gamification": ProductionConfig.ENABLE_GAMIFICATION,
+                "recommendations": ProductionConfig.ENABLE_RECOMMENDATIONS,
+                "voice_interaction": ProductionConfig.ENABLE_VOICE_INTERACTION,
+                "personality_engine": ProductionConfig.ENABLE_PERSONALITY_ENGINE,
+                "analytics": ProductionConfig.ENABLE_ANALYTICS
             }
-
-class DevelopmentConfig:
-    """Development configuration settings"""
-    
-    DEBUG = True
-    TESTING = False
-    SECRET_KEY = 'dev-secret-key'
-    SESSION_COOKIE_SECURE = False
-    LOG_LEVEL = logging.DEBUG
-
-class TestingConfig:
-    """Testing configuration settings"""
-    
-    DEBUG = False
-    TESTING = True
-    SECRET_KEY = 'test-secret-key'
-    WTF_CSRF_ENABLED = False
-
-# Configuration mapping
-config = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'production': ProductionConfig,
-    'default': ProductionConfig
-}
+        }

@@ -462,19 +462,26 @@ class SmartRecommendationsEngine:
         recommendations = self.generate_recommendations(memory)
         analysis = self._analyze_user_patterns(memory)
         
-        return {
-            "total_recommendations": len(recommendations),
-            "top_priority": recommendations[0] if recommendations else None,
-            "focus_areas": list(set(r.get("type", "general") for r in recommendations)),
-            "user_analysis": {
-                "goal_completion_rate": round(analysis["goal_completion_rate"] * 100, 1),
-                "habit_consistency": round(analysis["habit_consistency"] * 100, 1),
-                "mood_trend": analysis["mood_trend"]["trend"],
-                "stress_level": analysis["stress_indicators"]["stress_level"],
-                "engagement_level": round(analysis["engagement_level"] * 100, 1)
-            },
-            "recommendations": [
-                {
+        # Convert recommendations to dict format for JSON serialization
+        recommendation_dicts = []
+        focus_areas = set()
+        
+        for r in recommendations:
+            if hasattr(r, 'type'):
+                # Handle Recommendation objects
+                rec_dict = {
+                    "type": r.type.value,
+                    "title": r.title,
+                    "description": r.description,
+                    "priority": r.priority,
+                    "confidence": round(r.confidence * 100, 1),
+                    "timeline": r.timeline,
+                    "action_steps": r.action_steps
+                }
+                focus_areas.add(r.type.value)
+            else:
+                # Handle dict objects
+                rec_dict = {
                     "type": r.get("type", "general"),
                     "title": r.get("title", ""),
                     "description": r.get("description", ""),
@@ -483,6 +490,20 @@ class SmartRecommendationsEngine:
                     "timeline": r.get("timeline", ""),
                     "action_steps": r.get("action_steps", [])
                 }
-                for r in recommendations
-            ]
+                focus_areas.add(r.get("type", "general"))
+            
+            recommendation_dicts.append(rec_dict)
+        
+        return {
+            "total_recommendations": len(recommendations),
+            "top_priority": recommendation_dicts[0] if recommendation_dicts else None,
+            "focus_areas": list(focus_areas),
+            "user_analysis": {
+                "goal_completion_rate": round(analysis["goal_completion_rate"] * 100, 1),
+                "habit_consistency": round(analysis["habit_consistency"] * 100, 1),
+                "mood_trend": analysis["mood_trend"]["trend"],
+                "stress_level": analysis["stress_indicators"]["stress_level"],
+                "engagement_level": round(analysis["engagement_level"] * 100, 1)
+            },
+            "recommendations": recommendation_dicts
         }

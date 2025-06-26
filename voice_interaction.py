@@ -126,7 +126,7 @@ class VoiceInteractionEngine:
             import re
             mood_match = re.search(r'\b(\d+)\b', remaining_text)
             if mood_match:
-                parameters["mood"] = int(mood_match.group(1))
+                parameters["mood"] = str(mood_match.group(1))
         
         return parameters
     

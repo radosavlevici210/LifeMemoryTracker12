@@ -44,26 +44,52 @@
                     AI Life Coach
                 </span>
                 <div class="navbar-text">
-                    <div class="btn-group">
-                        <button class="btn btn-outline-light btn-sm" onclick="showGamificationDashboard()">
-                            <i class="fas fa-trophy me-1"></i>
-                            Progress
-                        </button>
-                        <button class="btn btn-outline-light btn-sm" onclick="showRecommendations()">
-                            <i class="fas fa-lightbulb me-1"></i>
-                            Insights
-                        </button>
-                        <button class="btn btn-outline-light btn-sm" onclick="showMoodTracker()">
-                            <i class="fas fa-heart me-1"></i>
-                            Mood
-                        </button>
-                        <button class="btn btn-outline-light btn-sm" onclick="showGoalsModal()">
-                            <i class="fas fa-target me-1"></i>
-                            Goals
-                        </button>
-                        <button class="btn btn-outline-light btn-sm" onclick="showInsightsModal()">
-                            <i class="fas fa-chart-line me-1"></i>
-                            Insights
+                    {% if user_info and user_info.authenticated %}
+                    <div class="d-flex align-items-center">
+                        {% if user_info.profile_image %}
+                        <img src="{{ user_info.profile_image }}" alt="Profile" class="rounded-circle me-2" width="32" height="32" style="object-fit: cover;">
+                        {% endif %}
+                        <span class="me-3">{{ user_info.name }}</span>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-light btn-sm" onclick="showGamificationDashboard()">
+                                <i class="fas fa-trophy me-1"></i>
+                                Progress
+                            </button>
+                            <a href="{{ url_for('replit_auth.logout') }}" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-sign-out-alt me-1"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{{ url_for('replit_auth.login') }}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-in-alt me-1"></i>
+                        Login
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <!-- Feature Navigation Bar (only show for authenticated users) -->
+        {% if user_info and user_info.authenticated %}
+        <div class="container mb-3">
+            <div class="btn-group d-flex flex-wrap gap-2" role="group">
+                <button class="btn btn-outline-primary btn-sm" onclick="showRecommendations()">
+                    <i class="fas fa-lightbulb me-1"></i>
+                    Insights
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="showMoodTracker()">
+                    <i class="fas fa-heart me-1"></i>
+                    Mood
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="showGoalsModal()">
+                    <i class="fas fa-target me-1"></i>
+                    Goals
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="showInsightsModal()">
+                    <i class="fas fa-chart-line me-1"></i>
+                    Analytics
                         </button>
                         <button class="btn btn-outline-light btn-sm" onclick="showHabitsModal()">
                             <i class="fas fa-calendar-check me-1"></i>

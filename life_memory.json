@@ -39,14 +39,71 @@
       "date": "2025-06-26",
       "event": "AI Coach: Hey there! It's great to hear from you. How can I assist you today? If you want to talk about your goals or anything else on your mind, I'm here for you!",
       "timestamp": "2025-06-26T13:10:35.729996"
+    },
+    {
+      "date": "2025-06-26",
+      "event": "Hello, can you help me with my goals?",
+      "timestamp": "2025-06-26T13:14:57.051016"
+    },
+    {
+      "date": "2025-06-26",
+      "event": "AI Coach: Hello! I'm glad you reached out again about your goals. It looks like you're currently focused on learning Python programming, which is a fantastic skill to develop. \n\nTo make progress toward this goal, here are a few suggestions:\n\n1. **Set Specific Milestones**: Break down your learning into smaller, manageable milestones. For example, you might aim to complete a specific online course, finish a project, or master a particular concept each month.\n\n2. **Create a Study Schedule**: Dedicate specific times each week for studying Python. Consistency is key, so find a routine that works for you and stick to it.\n\n3. **Join a Community**: Consider joining online forums or local meetups focused on Python. Engaging with others can provide motivation, support, and opportunities to learn from more experienced programmers.\n\n4. **Practice Regularly**: Apply what you learn by working on small projects or coding challenges. Websites like LeetCode, HackerRank, or Codecademy offer great resources for practice.\n\n5. **Track Your Progress**: Keep a journal or use an app to log your learning progress. Celebrate your small victories along the way to stay motivated!\n\nHow do these suggestions resonate with you? Is there a specific area you'd like to dive deeper into?",
+      "timestamp": "2025-06-26T13:15:00.959180"
+    },
+    {
+      "date": "2025-06-26",
+      "event": "Test the AI functionality",
+      "timestamp": "2025-06-26T13:18:14.992713"
+    },
+    {
+      "date": "2025-06-26",
+      "event": "AI Coach: It looks like you're testing the AI functionality! If there's anything specific you'd like to know or explore\u2014whether it's related to your goals, Python programming, or any other topic\u2014feel free to ask. I'm here to help!",
+      "timestamp": "2025-06-26T13:18:16.821012"
     }
   ],
-  "goals": [],
+  "goals": [
+    {
+      "id": 1,
+      "text": "Learn Python programming",
+      "category": "education",
+      "priority": "high",
+      "target_date": "2025-12-31",
+      "progress": 0,
+      "status": "active",
+      "created_date": "2025-06-26T13:14:39.831141",
+      "milestones": []
+    }
+  ],
   "warnings": [],
-  "mood_history": [],
+  "mood_history": [
+    {
+      "date": "2025-06-26",
+      "timestamp": "2025-06-26T13:14:51.203293",
+      "mood": 8,
+      "energy": 7,
+      "stress": 3,
+      "notes": "Feeling productive today",
+      "tags": [
+        "productive",
+        "focused"
+      ]
+    }
+  ],
   "achievements": [],
   "action_items": [],
-  "habits": [],
+  "habits": [
+    {
+      "id": 1,
+      "text": "Daily exercise",
+      "frequency": 7,
+      "category": "health",
+      "current_streak": 0,
+      "best_streak": 0,
+      "status": "active",
+      "created_date": "2025-06-26T13:14:45.024175",
+      "last_completed": null
+    }
+  ],
   "reflections": [],
   "milestones": []
 }

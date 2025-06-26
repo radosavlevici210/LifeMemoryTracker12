@@ -62,19 +62,14 @@ with app.app_context():
     import models
     db.create_all()
     
-    # Create default user if not exists
-    default_user = models.User.query.filter_by(username='Ervin').first()
-    if not default_user:
-        default_user = models.User(username='Ervin', email='ervin@example.com')
-        default_user.set_password('Quantum210')
-        db.session.add(default_user)
-        db.session.commit()
-        logging.info("Default user created successfully")
+    # Import and register Replit Auth
+    from replit_auth import make_replit_blueprint
+    app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
 
 @login_manager.user_loader
 def load_user(user_id):
     import models
-    return models.User.query.get(int(user_id))
+    return models.User.query.get(user_id)
 
 def load_memory():
     """Load user's life memory from database or JSON file"""
@@ -122,7 +117,9 @@ def save_memory(data):
         import models
         user_memory = models.UserMemory.query.filter_by(user_id=current_user.id).first()
         if not user_memory:
-            user_memory = models.UserMemory(user_id=current_user.id, memory_data=json.dumps(data))
+            user_memory = models.UserMemory()
+            user_memory.user_id = current_user.id
+            user_memory.memory_data = json.dumps(data)
             db.session.add(user_memory)
         else:
             user_memory.memory_data = json.dumps(data)
@@ -169,10 +166,23 @@ def logout():
 
 @app.route("/")
 def index():
-    """Render the main chat interface"""
-    return render_template("index.html")
+    """Main route with Replit Auth integration"""
+    if current_user.is_authenticated:
+        # Authenticated user - show main app
+        memory = load_memory()
+        user_info = {
+            'authenticated': True,
+            'name': current_user.first_name or current_user.email or 'User',
+            'email': current_user.email,
+            'profile_image': current_user.profile_image_url
+        }
+        return render_template("index.html", memory=memory, user_info=user_info)
+    else:
+        # Non-authenticated user - show landing page
+        return render_template("landing.html")
 
 @app.route("/chat", methods=["POST"])
+@login_required
 def chat():
     """Handle chat messages and provide AI responses"""
     try:
@@ -318,14 +328,14 @@ def clear_memory():
         logging.error(f"Memory clear error: {e}")
         return jsonify({"error": "Failed to clear memory"}), 500
 
-@app.route("/health")
-def health_check():
-    """Simple health check endpoint"""
+@app.route("/status")
+def basic_status():
+    """Basic status endpoint"""
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.datetime.now().isoformat(),
         "database": "connected" if db.engine else "disconnected",
-        "openai": "configured" if openai_client else "not configured"
+        "openai": "configured" if get_openai_client() else "not configured"
     })
 
 # Register admin dashboard blueprint
@@ -651,6 +661,89 @@ def track_mood():
         return jsonify({"message": "Mood tracked successfully", "mood": mood_entry})
     
     return jsonify(memory.get("mood_history", []))
+
+# Production health endpoints
+@app.route("/health", methods=["GET"])
+def production_health():
+    """Comprehensive health check endpoint"""
+    try:
+        from production_monitoring import monitor
+        health_data = monitor.get_system_health()
+        return jsonify(health_data)
+    except ImportError:
+        return jsonify({
+            "status": "healthy",
+            "timestamp": datetime.datetime.now().isoformat(),
+            "version": "2.0.0",
+            "features": {
+                "ai_chat": bool(get_openai_client()),
+                "database": True,
+                "gamification": True,
+                "recommendations": True,
+                "voice_interaction": True,
+                "personality_engine": True
+            }
+        })
+
+@app.route("/health/detailed", methods=["GET"])
+def detailed_health_check():
+    """Detailed health and performance metrics"""
+    try:
+        from production_monitoring import monitor
+        return jsonify(monitor.get_performance_summary())
+    except ImportError:
+        return jsonify({
+            "status": "basic_monitoring",
+            "message": "Advanced monitoring not available"
+        })
+
+@app.route("/version", methods=["GET"])
+def version_info():
+    """Get application version and feature information"""
+    try:
+        from production_config import ProductionConfig
+        return jsonify(ProductionConfig.get_version_info())
+    except ImportError:
+        return jsonify({
+            "version": "2.0.0",
+            "environment": "production",
+            "build_date": datetime.datetime.now().isoformat(),
+            "features": {
+                "ai_chat": True,
+                "gamification": True,
+                "recommendations": True,
+                "voice_interaction": True,
+                "personality_engine": True,
+                "analytics": True
+            }
+        })
+
+# Error handling
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        "error": "Resource not found",
+        "status": 404,
+        "timestamp": datetime.datetime.now().isoformat()
+    }), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        "error": "Internal server error",
+        "status": 500,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "support": "Please try again or contact support if the issue persists"
+    }), 500
+
+@app.errorhandler(429)
+def rate_limit_exceeded(error):
+    return jsonify({
+        "error": "Rate limit exceeded",
+        "status": 429,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "message": "Please wait before making more requests"
+    }), 429
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

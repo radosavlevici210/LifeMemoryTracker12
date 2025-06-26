@@ -242,7 +242,8 @@ class GamificationEngine:
             return 0
         
         # Get unique dates from life events
-        dates = sorted(set(event.get("date") for event in life_events if event.get("date")))
+        valid_dates = [event.get("date") for event in life_events if event.get("date") is not None]
+        dates = sorted(list(set(valid_dates))) if valid_dates else []
         
         if not dates:
             return 0
